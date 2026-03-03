@@ -10,7 +10,7 @@ app.get("/score", function (req, res) {});
 app.post("/envio-cvs", function (req, res) {});
 app.post("/envio-sql", function (req, res) {});
 
-app.delete("/del-registro?registro", function (req, res) {
+app.delete("/del-registro/:registro", function (req, res) {
     let registro = req.params.registro
 });
 app.delete("/drop-registros", function (req, res) {});
