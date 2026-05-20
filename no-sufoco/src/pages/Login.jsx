@@ -49,7 +49,15 @@ function Login() {
         dadosEnvio,
       );
       alert("Login realizado!");
-      console.log(response);
+
+
+      const dadosUsuario = {
+        id: response.data.user.id,
+        token: response.data.token
+      }
+
+      localStorage.setItem("usuario", JSON.stringify(dadosUsuario));
+
       navigate('/dashboard')
     } catch (error) {
       console.error("Erro ao enviar: ", error);
