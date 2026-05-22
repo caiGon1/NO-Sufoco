@@ -19,6 +19,35 @@ function Dashboard() {
 
   const valores = [300, 150, 200, 800];
 
+  const debitos = transacoes.filter((item) => item.tipo === "debito");
+
+  const total = debitos.reduce((soma, item) => soma + item.valor, 0);
+
+  const data = Object.values(
+    debitos.reduce((acc, item) => {
+      const cat = item.categoria || "Outros";
+
+      if (!acc[cat]) {
+        acc[cat] = {
+          id: cat,
+          value: 0,
+          label: cat,
+        };
+      }
+
+      acc[cat].value += item.valor;
+
+      return acc;
+    }, {}),
+  ).map((item) => ({
+    ...item
+  }));
+
+  const getArcLabel = (params) => {
+    const percent = (params.valor / TOTAL) * 100;
+    return `${percent.toFixed(0)}%`;
+  };
+
   const analiseIA = async () => {
     if (!usuarioId) return;
     try {
@@ -158,22 +187,10 @@ function Dashboard() {
                       <PieChart
                         series={[
                           {
-                            data: Object.values(
-                              transacoes.reduce((acc, item) => {
-                                const cat = item.categoria || "Outros";
-                                // Se a categoria ainda não existe no grupo, inicializa ela
-                                if (!acc[cat]) {
-                                  acc[cat] = {
-                                    id: cat,
-                                    value: 0,
-                                    label: cat,
-                                  };
-                                }
-                                // Soma o valor da transação atual ao total da categoria
-                                acc[cat].value += item.valor;
-                                return acc;
-                              }, {}),
-                            ),
+                            data,
+                            arcLabel: (item) =>
+                              `${((item.value / total) * 100).toFixed(1)}%`,
+                            arcLabelMinAngle: 20,
                           },
                         ]}
                         width={400}
