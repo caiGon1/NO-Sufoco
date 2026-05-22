@@ -158,28 +158,22 @@ function Dashboard() {
                       <PieChart
                         series={[
                           {
-                            data: [
-                              {
-                                id: 0,
-                                value: 300,
-                                label: "Comida",
-                              },
-                              {
-                                id: 1,
-                                value: 150,
-                                label: "Transporte",
-                              },
-                              {
-                                id: 2,
-                                value: 200,
-                                label: "Lazer",
-                              },
-                              {
-                                id: 3,
-                                value: 800,
-                                label: "Investimento",
-                              },
-                            ],
+                            data: Object.values(
+                              transacoes.reduce((acc, item) => {
+                                const cat = item.categoria || "Outros";
+                                // Se a categoria ainda não existe no grupo, inicializa ela
+                                if (!acc[cat]) {
+                                  acc[cat] = {
+                                    id: cat,
+                                    value: 0,
+                                    label: cat,
+                                  };
+                                }
+                                // Soma o valor da transação atual ao total da categoria
+                                acc[cat].value += item.valor;
+                                return acc;
+                              }, {}),
+                            ),
                           },
                         ]}
                         width={400}
