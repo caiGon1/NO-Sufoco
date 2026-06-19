@@ -14,6 +14,7 @@ Monitoramento de ações e criptomoedas;
 Envio de alertas por e-mail para altas e baixas de ativos;
 Proteção de dados através de criptografia;
 Arquitetura serverless para maior escalabilidade e disponibilidade.
+
 🎯 Objetivo
 
 Facilitar o acesso a análises financeiras inteligentes, permitindo que qualquer pessoa compreenda melhor sua situação financeira e receba informações relevantes para auxiliar no planejamento e na gestão de seus recursos.
