@@ -1,5 +1,4 @@
 import * as React from "react";
-// 1. CORREÇÃO: Adicionado o 'useRef' no import do React
 import { useEffect, useState, useRef } from "react";
 import axios from "axios";
 import { BarChart } from "@mui/x-charts/BarChart";
@@ -19,7 +18,6 @@ function Dashboard() {
 
   const fileInputRef = useRef(null);
   const [arquivo, setArquivo] = useState(null);
-  // Defina como string vazia para controlar melhor o input text
   const [senha, setSenha] = useState("");
   const [carregando, setCarregando] = useState(false);
 
@@ -51,7 +49,6 @@ function Dashboard() {
     };
   });
 
-  // 2. ADICIONADO: Função que manipula o envio do arquivo via FormData para o Backend
   const handleUploadExtrato = async (e) => {
     e.preventDefault();
 
@@ -89,7 +86,7 @@ function Dashboard() {
         setArquivo(null);
         setSenha("");
         setModalUploadAberto(false);
-        window.location.reload(); // Recarrega a página para atualizar os gráficos com os novos dados
+        window.location.reload(); 
       }
     } catch (error) {
       console.error("Erro ao enviar arquivo:", error);
@@ -126,7 +123,6 @@ function Dashboard() {
   useEffect(() => {
     const buscarUsuario = async () => {
       if (!usuarioId) {
-        // Se não tem ID de usuário, força a abertura do modal para ele enviar o arquivo
         setModalUploadAberto(true);
         return;
       }
@@ -147,7 +143,6 @@ function Dashboard() {
           ) || [];
         setTransacoes(transacoesAchatadas);
 
-        // CORREÇÃO: Usando a variável local 'transacoesAchatadas' em vez do estado 'transacoes'
         if (
           !resposta.data.periodos ||
           resposta.data.periodos.length === 0 ||
@@ -170,13 +165,18 @@ function Dashboard() {
             }
 
             let saldoMes = totalEntrada - totalSaida;
+            
+            // 🛠️ CORREÇÃO FRONTERND: Agora lê diretamente a string unificada 'mesAno'
+            // Se por algum motivo o banco ainda tiver um registro antigo, usa o fallback para evitar quebras.
+            const rotuloPeriodo = p.mesAno || `${p.mes}/${p.ano}`;
+
             listaTotaisMes.push({
-              periodo: `${p.mes}/${p.ano}`,
+              periodo: rotuloPeriodo,
               total: saldoMes,
             });
 
             return {
-              periodo: `${p.mes}/${p.ano}`,
+              periodo: rotuloPeriodo,
               entrada: totalEntrada,
               saida: totalSaida,
             };
@@ -186,7 +186,6 @@ function Dashboard() {
         setValores(dadosFormatados);
       } catch (error) {
         console.error("Erro ao buscar dados do usuário:", error);
-        // CORREÇÃO SEGURA: Se a API der erro (401, 500, etc), abre o modal para não travar o usuário
         setModalUploadAberto(true);
       }
     };
@@ -279,7 +278,6 @@ function Dashboard() {
         </form>
       </ModalPersonalizado>
 
-      {/* Grid de layout original (Transações + Gráficos) */}
       <div className="flex h-full w-full">
         <div className="h-full w-1/3 p-4 bg-gray-50 overflow-y-auto scrollbar-thin">
           <div className="flex justify-between items-center mb-4">
