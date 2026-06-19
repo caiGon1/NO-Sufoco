@@ -6,22 +6,16 @@ import { PieChart } from "@mui/x-charts";
 import { LineChart } from "@mui/x-charts";
 
 function Dashboard() {
-  // Certifique-se de que no localStorage está gravado como _id ou ajuste aqui
   const usuario = JSON.parse(localStorage.getItem("usuario") || "{}");
-  const usuarioId = usuario._id || usuario.id; // Garante a captura independente de como salvou
+  const usuarioId = usuario._id || usuario.id;
 
   const [transacoes, setTransacoes] = useState([]);
+  const [valores, setValores] = useState([]);
   const [analise, setAnalise] = useState("");
-
-  const dadosLinha = [400, 300, 500, 200, 600, 700, 650];
-
-  const categorias = ["Cartão", "PIX", "Lazer", "Investimento"];
-
-  const valores = [300, 150, 200, 800];
+  const [totalMes, setTotalMes] = useState([]);
 
   const debitos = transacoes.filter((item) => item.tipo === "debito");
-
-  const total = debitos.reduce((soma, item) => soma + item.valor, 0);
+  const graficoP = debitos.reduce((soma, item) => soma + item.valor, 0);
 
   const data = Object.values(
     debitos.reduce((acc, item) => {
@@ -36,17 +30,17 @@ function Dashboard() {
       }
 
       acc[cat].value += item.valor;
-
       return acc;
     }, {}),
-  ).map((item) => ({
-    ...item
-  }));
+  ).map((item) => {
 
-  const getArcLabel = (params) => {
-    const percent = (params.valor / TOTAL) * 100;
-    return `${percent.toFixed(0)}%`;
-  };
+    const percent = graficoP > 0 ? ((item.value / graficoP) * 100).toFixed(1) : 0;
+    
+    return {
+      ...item,
+      label: `${item.label} (${percent}%)`,
+    };
+  });
 
   const analiseIA = async () => {
     if (!usuarioId) return;
@@ -63,9 +57,7 @@ function Dashboard() {
       console.log(resposta.data);
     } catch (error) {
       console.log(error);
-      alert(
-        "Houve um erro ao tentar fazer sua analise, tente novamente mais tarde...",
-      );
+      alert("Houve um erro ao tentar fazer sua analise, tente novamente mais tarde...");
     }
   };
 
@@ -82,7 +74,42 @@ function Dashboard() {
           },
         );
 
-        setTransacoes(resposta.data.transacoes || []);
+        setTransacoes(
+          resposta.data.periodos.flatMap((periodo) => periodo.transacoes || []),
+        );
+
+        const listaTotaisMes = [];
+
+        const dadosFormatados = resposta.data.periodos.map((p) => {
+          let totalEntrada = 0;
+          let totalSaida = 0;
+
+          if (p.transacoes && Array.isArray(p.transacoes)) {
+            p.transacoes.forEach((t) => {
+              if (t.tipo === "credito") {
+                totalEntrada += t.valor;
+              } else if (t.tipo === "debito") {
+                totalSaida += t.valor;
+              }
+            });
+          }
+
+          let saldoMes = totalEntrada - totalSaida;
+          
+          listaTotaisMes.push({ 
+            periodo: `${p.mes}/${p.ano}`, 
+            total: saldoMes 
+          });
+
+          return {
+            periodo: `${p.mes}/${p.ano}`,
+            entrada: totalEntrada,
+            saida: totalSaida,
+          };
+        });
+
+        setTotalMes(listaTotaisMes);
+        setValores(dadosFormatados);
 
         console.log(resposta.data);
       } catch (error) {
@@ -92,7 +119,6 @@ function Dashboard() {
 
     buscarUsuario();
   }, [usuarioId]);
-  // Usando a variável isolada para evitar loops do objeto
 
   return (
     <div className="h-screen w-screen">
@@ -103,7 +129,6 @@ function Dashboard() {
           <div className="flex flex-col gap-2">
             {transacoes && transacoes.length > 0 ? (
               transacoes.map((transacao, index) => (
-                // Usando o index como key já que não há ID visível no objeto
                 <div
                   key={index}
                   className="p-3 border rounded shadow-sm bg-white flex justify-between items-center"
@@ -121,7 +146,6 @@ function Dashboard() {
                   </div>
 
                   <div className="text-right">
-                    {/* Muda a cor do texto baseado no tipo de transação */}
                     <p
                       className={`font-bold ${transacao.tipo === "debito" ? "text-red-500" : "text-green-500"}`}
                     >
@@ -146,6 +170,7 @@ function Dashboard() {
             <div className="bg-white rounded shadow p-4">
               <div className="h-full bg-gray-100 p-4">
                 <div className="grid grid-cols-2 grid-rows-2 gap-4 h-full">
+                  
                   {/* GRÁFICO DE LINHA */}
                   <div className="col-span-2 bg-white rounded-xl shadow p-4">
                     <h2 className="text-xl font-bold mb-4">
@@ -153,31 +178,28 @@ function Dashboard() {
                     </h2>
 
                     <LineChart
+                      dataset={totalMes}
                       xAxis={[
                         {
                           scaleType: "point",
-                          data: [
-                            "Jan",
-                            "Fev",
-                            "Mar",
-                            "Abr",
-                            "Mai",
-                            "Jun",
-                            "Jul",
-                          ],
+                          dataKey: "periodo",
                         },
                       ]}
                       series={[
                         {
-                          data: dadosLinha,
+                          dataKey: "total",
+                          label: "Saldo do Período",
                           color: "#10b981",
+                          curve: "catmullRom",
+                          showMark: true,
                         },
                       ]}
                       height={300}
+                      margin={{ top: 20, bottom: 30, left: 50, right: 20 }}
                     />
                   </div>
 
-                  {/* PIZZA */}
+                  {/* PIZZA (ALTERADO: Limpo por dentro, porcentagem na lateral) */}
                   <div className="bg-white rounded-xl shadow p-4 flex flex-col">
                     <h2 className="text-xl font-bold mb-4">
                       Gastos por Categoria
@@ -188,12 +210,20 @@ function Dashboard() {
                         series={[
                           {
                             data,
-                            arcLabel: (item) =>
-                              `${((item.value / total) * 100).toFixed(1)}%`,
-                            arcLabelMinAngle: 20,
+                            // Deixamos o arcLabel vazio para limpar o meio do gráfico
+                            // e não gerar sobreposições de texto.
+                            arcLabel: () => "", 
                           },
                         ]}
-                        width={400}
+                        // Configurações extras de layout da legenda para dar mais espaço
+                        slotProps={{
+                          legend: {
+                            direction: 'column',
+                            position: { vertical: 'middle', horizontal: 'right' },
+                            labelStyle: { fontSize: 13 },
+                          },
+                        }}
+                        width={450} // Aumentado um pouco para acomodar o texto das porcentagens na direita
                         height={250}
                       />
                     </div>
@@ -204,21 +234,30 @@ function Dashboard() {
                     <h2 className="text-xl font-bold mb-4">Comparativo</h2>
 
                     <BarChart
+                      dataset={valores}
                       xAxis={[
                         {
                           scaleType: "band",
-                          data: categorias,
+                          dataKey: "periodo",
                         },
                       ]}
                       series={[
                         {
-                          data: valores,
-                          color: "#3b82f6",
+                          dataKey: "entrada",
+                          label: "Entrada",
+                          color: "#4ade80",
+                        },
+                        {
+                          dataKey: "saida",
+                          label: "Saída",
+                          color: "#f87171",
                         },
                       ]}
-                      height={250}
+                      height={300}
+                      margin={{ top: 20, bottom: 30, left: 40, right: 10 }}
                     />
                   </div>
+
                 </div>
               </div>
             </div>
