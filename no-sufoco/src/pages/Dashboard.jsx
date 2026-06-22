@@ -86,7 +86,7 @@ function Dashboard() {
         setArquivo(null);
         setSenha("");
         setModalUploadAberto(false);
-        window.location.reload(); 
+        window.location.reload();
       }
     } catch (error) {
       console.error("Erro ao enviar arquivo:", error);
@@ -141,6 +141,10 @@ function Dashboard() {
           resposta.data.periodos?.flatMap(
             (periodo) => periodo.transacoes || [],
           ) || [];
+
+        console.log("===== TRANSAÇÕES DO USUÁRIO CARREGADAS =====");
+        console.log(transacoesAchatadas);
+        console.log("============================================");
         setTransacoes(transacoesAchatadas);
 
         if (
@@ -165,9 +169,7 @@ function Dashboard() {
             }
 
             let saldoMes = totalEntrada - totalSaida;
-            
-            // 🛠️ CORREÇÃO FRONTERND: Agora lê diretamente a string unificada 'mesAno'
-            // Se por algum motivo o banco ainda tiver um registro antigo, usa o fallback para evitar quebras.
+
             const rotuloPeriodo = p.mesAno || `${p.mes}/${p.ano}`;
 
             listaTotaisMes.push({
@@ -320,7 +322,9 @@ function Dashboard() {
                       {transacao.tipo}
                     </p>
                     <p>
-                      {transacao.parcela.eParcela ? `Parcela ${transacao.parcela.parcelaAtual}/${transacao.parcela.parcelaFinal }` : ""}
+                      {transacao.parcela.eParcela
+                        ? `Parcela ${transacao.parcela.parcelaAtual}/${transacao.parcela.parcelaFinal}`
+                        : ""}
                     </p>
                   </div>
                 </div>
