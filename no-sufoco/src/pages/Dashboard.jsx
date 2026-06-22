@@ -319,6 +319,9 @@ function Dashboard() {
                     <p className="text-xs text-gray-400 capitalize">
                       {transacao.tipo}
                     </p>
+                    <p>
+                      {transacao.parcela.eParcela ? `Parcela ${transacao.parcela.parcelaAtual}/${transacao.parcela.parcelaFinal }` : ""}
+                    </p>
                   </div>
                 </div>
               ))
