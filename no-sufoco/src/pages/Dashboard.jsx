@@ -1,10 +1,61 @@
 import * as React from "react";
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useMemo } from "react";
 import axios from "axios";
 import { BarChart } from "@mui/x-charts/BarChart";
 import { PieChart } from "@mui/x-charts";
 import { LineChart } from "@mui/x-charts";
 import ModalPersonalizado from "../components/ModalPersonalizado";
+import { Button, Menu, MenuItem } from "@mui/material";
+
+// ==========================================
+// FUNÇÃO DE PROJEÇÃO DE PARCELAS FUTURAS
+// ==========================================
+function calcularProjecaoNoFrontend(transacoes) {
+  const cronograma = {};
+  const nomesMeses = [
+    "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
+    "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"
+  ];
+
+  transacoes.forEach(t => {
+    // Apenas transações que são parcelas de fato
+    if (!t.parcela?.eParcela || !t.data) return;
+
+    const [dia, mes, ano] = t.data.split("/").map(Number);
+    const atual = t.parcela.parcelaAtual;
+    const final = t.parcela.parcelaFinal;
+
+    const dataBase = new Date(ano, mes - 1, dia);
+
+    for (let i = atual; i <= final; i++) {
+      const mesesAAdicionar = i - atual;
+      // Calcula o mês futuro da parcela
+      const dataParcela = new Date(dataBase.getFullYear(), dataBase.getMonth() + mesesAAdicionar, 1);
+      
+      const chaveMesAno = `${dataParcela.getMonth() + 1}/${dataParcela.getFullYear()}`;
+      const rotuloAmigavel = `${nomesMeses[dataParcela.getMonth()]}/${dataParcela.getFullYear()}`;
+
+      if (!cronograma[chaveMesAno]) {
+        cronograma[chaveMesAno] = {
+          rotulo: rotuloAmigavel,
+          totalMes: 0,
+          transacoes: []
+        };
+      }
+
+      cronograma[chaveMesAno].totalMes += t.valor;
+      cronograma[chaveMesAno].transacoes.push({
+        descricao: t.descricao,
+        valor: t.valor,
+        parcelaNumero: `${i}/${final}`,
+        categoria: t.categoria,
+        tipo: t.tipo
+      });
+    }
+  });
+
+  return cronograma;
+}
 
 function Dashboard() {
   const usuario = JSON.parse(localStorage.getItem("usuario") || "{}");
@@ -17,6 +68,9 @@ function Dashboard() {
   const [parcelas, setParcelas] = useState([]);
   const [modalUploadAberto, setModalUploadAberto] = useState(false);
 
+  // ESTADOS DO NOVO MENU DE PROJEÇÃO
+  const [mesSelecionado, setMesSelecionado] = useState(""); // Vazio = Todas as transações
+
   const fileInputRef = useRef(null);
   const [arquivo, setArquivo] = useState(null);
   const [senha, setSenha] = useState("");
@@ -25,6 +79,29 @@ function Dashboard() {
   const debitos = transacoes.filter((item) => item.tipo === "debito");
   const graficoP = debitos.reduce((soma, item) => soma + item.valor, 0);
 
+  // MATERIAL UI MENU STATES
+  const id = React.useId();
+  const buttonId = `${id}-button`;
+  const menuId = `${id}-menu`;
+  const [anchorEl, setAnchorEl] = React.useState(null);
+  const open = Boolean(anchorEl);
+  const handleClick = (event) => {
+    setAnchorEl(event.currentTarget);
+  };
+  const handleClose = () => {
+    setAnchorEl(null);
+  };
+
+  // ==========================================
+  // GERAÇÃO DO CRONOGRAMA DE PARCELAS (USEMEMO)
+  // ==========================================
+  const projecaoFutura = useMemo(() => {
+    return calcularProjecaoNoFrontend(transacoes);
+  }, [transacoes]);
+
+  const mesesProjetados = Object.keys(projecaoFutura);
+
+  // Restante da formatação dos gráficos...
   const data = Object.values(
     debitos.reduce((acc, item) => {
       const cat = item.categoria || "Outros";
@@ -100,110 +177,81 @@ function Dashboard() {
     }
   };
 
-  const analiseIA = async () => {
-    if (!usuarioId) return;
-    try {
-      const resposta = await axios.get(
-        `https://backend-no-sufoco.vercel.app/api/banking/${usuarioId}`,
-        {
-          headers: {
-            Authorization: `Bearer ${usuario.token}`,
-          },
-        },
-      );
-      setAnalise(resposta.data);
-      console.log(resposta.data);
-    } catch (error) {
-      console.log(error);
-      alert(
-        "Houve um erro ao tentar fazer sua analise, tente novamente mais tarde...",
-      );
-    }
-  };
-
   useEffect(() => {
-  const buscarUsuario = async () => {
-    if (!usuarioId) {
-      setModalUploadAberto(true);
-      return;
-    }
-
-    try {
-      const resposta = await axios.get(
-        `https://backend-no-sufoco.vercel.app/api/user/${usuario.id}`,
-        {
-          headers: {
-            Authorization: `Bearer ${usuario.token}`,
-          },
-        },
-      );
-
-      // 1. Concatena todas as transações em uma lista única
-      const transacoesAchatadas =
-        resposta.data.periodos?.flatMap(
-          (periodo) => periodo.transacoes || [],
-        ) || [];
-
-      console.log("===== TRANSAÇÕES DO USUÁRIO CARREGADAS =====");
-      console.log(transacoesAchatadas);
-      console.log("============================================");
-      setTransacoes(transacoesAchatadas);
-
-      const apenasParceladas = transacoesAchatadas.filter(
-        (t) => t.parcela?.eParcela === true
-      );
-
-      console.log("===== PARCELAS GUARDADAS =====");
-      console.log(apenasParceladas);
-      console.log("============================================");
-      setParcelas(apenasParceladas);
-
-      if (
-        !resposta.data.periodos ||
-        resposta.data.periodos.length === 0 ||
-        transacoesAchatadas.length === 0
-      ) {
+    const buscarUsuario = async () => {
+      if (!usuarioId) {
         setModalUploadAberto(true);
+        return;
       }
 
-      const listaTotaisMes = [];
-      const dadosFormatados =
-        resposta.data.periodos?.map((p) => {
-          let totalEntrada = 0;
-          let totalSaida = 0;
+      try {
+        const resposta = await axios.get(
+          `https://backend-no-sufoco.vercel.app/api/user/${usuario.id}`,
+          {
+            headers: {
+              Authorization: `Bearer ${usuario.token}`,
+            },
+          },
+        );
 
-          if (p.transacoes && Array.isArray(p.transacoes)) {
-            p.transacoes.forEach((t) => {
-              if (t.tipo === "credito") totalEntrada += t.valor;
-              else if (t.tipo === "debito") totalSaida += t.valor;
+        const transacoesAchatadas =
+          resposta.data.periodos?.flatMap(
+            (periodo) => periodo.transacoes || [],
+          ) || [];
+
+        setTransacoes(transacoesAchatadas);
+
+        const apenasParceladas = transacoesAchatadas.filter(
+          (t) => t.parcela?.eParcela === true,
+        );
+        setParcelas(apenasParceladas);
+
+        if (
+          !resposta.data.periodos ||
+          resposta.data.periodos.length === 0 ||
+          transacoesAchatadas.length === 0
+        ) {
+          setModalUploadAberto(true);
+        }
+
+        const listaTotaisMes = [];
+        const dadosFormatados =
+          resposta.data.periodos?.map((p) => {
+            let totalEntrada = 0;
+            let totalSaida = 0;
+
+            if (p.transacoes && Array.isArray(p.transacoes)) {
+              p.transacoes.forEach((t) => {
+                if (t.tipo === "credito") totalEntrada += t.valor;
+                else if (t.tipo === "debito") totalSaida += t.valor;
+              });
+            }
+
+            let saldoMes = totalEntrada - totalSaida;
+            const rotuloPeriodo = p.mesAno || `${p.mes}/${p.ano}`;
+
+            listaTotaisMes.push({
+              periodo: rotuloPeriodo,
+              total: saldoMes,
             });
-          }
-          
-          let saldoMes = totalEntrada - totalSaida;
-          const rotuloPeriodo = p.mesAno || `${p.mes}/${p.ano}`;
 
-          listaTotaisMes.push({
-            periodo: rotuloPeriodo,
-            total: saldoMes,
-          });
+            return {
+              periodo: rotuloPeriodo,
+              entrada: totalEntrada,
+              saida: totalSaida,
+            };
+          }) || [];
 
-          return {
-            periodo: rotuloPeriodo,
-            entrada: totalEntrada,
-            saida: totalSaida,
-          };
-        }) || [];
+        setTotalMes(listaTotaisMes);
+        setValores(dadosFormatados);
+      } catch (error) {
+        console.error("Erro ao buscar dados do usuário:", error);
+        setModalUploadAberto(true);
+      }
+    };
 
-      setTotalMes(listaTotaisMes);
-      setValores(dadosFormatados);
-    } catch (error) {
-      console.error("Erro ao buscar dados do usuário:", error);
-      setModalUploadAberto(true);
-    }
-  };
-
-  buscarUsuario();
-}, [usuarioId]);
+    buscarUsuario();
+  }, [usuarioId]);
 
   return (
     <div className="h-screen w-screen">
@@ -291,9 +339,45 @@ function Dashboard() {
       </ModalPersonalizado>
 
       <div className="flex h-full w-full">
+        {/* COLUNA ESQUERDA - LISTA DE TRANSAÇÕES */}
         <div className="h-full w-1/3 p-4 bg-gray-50 overflow-y-auto scrollbar-thin">
           <div className="flex justify-between items-center mb-4">
             <h1 className="text-xl font-bold">Suas Transações</h1>
+            <Button
+              id={buttonId}
+              aria-controls={open ? menuId : undefined}
+              aria-haspopup="true"
+              aria-expanded={open}
+              onClick={handleClick}
+            >
+              {mesSelecionado ? projecaoFutura[mesSelecionado].rotulo : "Mês Atual"}
+            </Button>
+            <Menu
+              id={menuId}
+              anchorEl={anchorEl}
+              open={open}
+              onClose={handleClose}
+              slotProps={{
+                list: {
+                  "aria-labelledby": buttonId,
+                },
+              }}
+            >
+              {/* Opção para limpar o filtro e ver tudo */}
+              <MenuItem onClick={() => { setMesSelecionado(""); handleClose(); }}>
+                Mês Atual / Todas
+              </MenuItem>
+              
+              {/* Lista os meses dinamicamente gerados pelo useMemo */}
+              {mesesProjetados.map(chave => (
+                <MenuItem 
+                  key={chave} 
+                  onClick={() => { setMesSelecionado(chave); handleClose(); }}
+                >
+                  {projecaoFutura[chave].rotulo}
+                </MenuItem>
+              ))}
+            </Menu>
             <button
               onClick={() => setModalUploadAberto(true)}
               className="px-3 py-1.5 bg-green-500 text-white rounded-lg text-xs font-semibold hover:bg-green-600 shadow transition-colors"
@@ -303,48 +387,83 @@ function Dashboard() {
           </div>
 
           <div className="flex flex-col gap-2">
-            {transacoes && transacoes.length > 0 ? (
-              transacoes.map((transacao, index) => (
-                <div
-                  key={index}
-                  className="p-3 border rounded shadow-sm bg-white flex justify-between items-center"
-                >
-                  <div>
-                    <p className="font-semibold text-gray-800">
-                      {transacao.descricao}
-                    </p>
-                    <div className="flex gap-2 text-xs text-gray-500 mt-1">
-                      <span className="bg-gray-100 px-2 py-0.5 rounded">
-                        {transacao.categoria}
-                      </span>
-                      <span>{transacao.data}</span>
+            {/* CONDICIONAL: Mostra Projeção do Mês OU Mostra Lista Completa */}
+            {mesSelecionado && projecaoFutura[mesSelecionado] ? (
+              <>
+                <div className="bg-orange-50 border border-orange-200 p-4 rounded shadow-sm mb-2">
+                  <p className="text-orange-800 font-bold text-lg">
+                    Total Projetado: R$ {projecaoFutura[mesSelecionado].totalMes.toFixed(2)}
+                  </p>
+                  <p className="text-sm text-orange-600">
+                    {projecaoFutura[mesSelecionado].transacoes.length} parcelas para vencer neste mês.
+                  </p>
+                </div>
+
+                {projecaoFutura[mesSelecionado].transacoes.map((t, index) => (
+                  <div key={index} className="p-3 border rounded shadow-sm bg-white flex justify-between items-center">
+                    <div>
+                      <p className="font-semibold text-gray-800">{t.descricao}</p>
+                      <div className="flex gap-2 text-xs text-gray-500 mt-1">
+                        <span className="bg-gray-100 px-2 py-0.5 rounded">{t.categoria}</span>
+                        <span className="bg-orange-100 text-orange-800 px-2 py-0.5 rounded font-bold">
+                          Parcela {t.parcelaNumero}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <p className={`font-bold ${t.tipo === "debito" ? "text-red-500" : "text-green-500"}`}>
+                        {t.tipo === "debito" ? "-" : "+"} R$ {t.valor.toFixed(2)}
+                      </p>
                     </div>
                   </div>
-
-                  <div className="text-right">
-                    <p
-                      className={`font-bold ${transacao.tipo === "debito" ? "text-red-500" : "text-green-500"}`}
-                    >
-                      {transacao.tipo === "debito" ? "-" : "+"} R${" "}
-                      {transacao.valor.toFixed(2)}
-                    </p>
-                    <p className="text-xs text-gray-400 capitalize">
-                      {transacao.tipo}
-                    </p>
-                    <p>
-                      {transacao.parcela.eParcela
-                        ? `Parcela ${transacao.parcela.parcelaAtual}/${transacao.parcela.parcelaFinal}`
-                        : ""}
-                    </p>
-                  </div>
-                </div>
-              ))
+                ))}
+              </>
             ) : (
-              <p className="text-gray-500">Nenhuma transação encontrada.</p>
+              /* LISTA NORMAL DE TODAS AS TRANSAÇÕES */
+              transacoes && transacoes.length > 0 ? (
+                transacoes.map((transacao, index) => (
+                  <div
+                    key={index}
+                    className="p-3 border rounded shadow-sm bg-white flex justify-between items-center"
+                  >
+                    <div>
+                      <p className="font-semibold text-gray-800">
+                        {transacao.descricao}
+                      </p>
+                      <div className="flex gap-2 text-xs text-gray-500 mt-1">
+                        <span className="bg-gray-100 px-2 py-0.5 rounded">
+                          {transacao.categoria}
+                        </span>
+                        <span>{transacao.data}</span>
+                      </div>
+                    </div>
+
+                    <div className="text-right">
+                      <p
+                        className={`font-bold ${transacao.tipo === "debito" ? "text-red-500" : "text-green-500"}`}
+                      >
+                        {transacao.tipo === "debito" ? "-" : "+"} R${" "}
+                        {transacao.valor.toFixed(2)}
+                      </p>
+                      <p className="text-xs text-gray-400 capitalize">
+                        {transacao.tipo}
+                      </p>
+                      <p className="text-xs text-orange-500 font-bold mt-1">
+                        {transacao.parcela?.eParcela
+                          ? `Parcela ${transacao.parcela.parcelaAtual}/${transacao.parcela.parcelaFinal}`
+                          : ""}
+                      </p>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <p className="text-gray-500">Nenhuma transação encontrada.</p>
+              )
             )}
           </div>
         </div>
 
+        {/* COLUNA DIREITA - GRÁFICOS */}
         <div className="h-full w-full bg-gray-200">
           <div className="w-full h-full bg-gray-100 p-4">
             <h1 className="text-2xl font-bold mb-4">Estatísticas</h1>
