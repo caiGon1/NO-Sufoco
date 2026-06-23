@@ -14,6 +14,7 @@ function Dashboard() {
   const [valores, setValores] = useState([]);
   const [analise, setAnalise] = useState("");
   const [totalMes, setTotalMes] = useState([]);
+  const [parcelas, setParcelas] = useState([]);
   const [modalUploadAberto, setModalUploadAberto] = useState(false);
 
   const fileInputRef = useRef(null);
@@ -121,79 +122,88 @@ function Dashboard() {
   };
 
   useEffect(() => {
-    const buscarUsuario = async () => {
-      if (!usuarioId) {
-        setModalUploadAberto(true);
-        return;
-      }
+  const buscarUsuario = async () => {
+    if (!usuarioId) {
+      setModalUploadAberto(true);
+      return;
+    }
 
-      try {
-        const resposta = await axios.get(
-          `https://backend-no-sufoco.vercel.app/api/user/${usuario.id}`,
-          {
-            headers: {
-              Authorization: `Bearer ${usuario.token}`,
-            },
+    try {
+      const resposta = await axios.get(
+        `https://backend-no-sufoco.vercel.app/api/user/${usuario.id}`,
+        {
+          headers: {
+            Authorization: `Bearer ${usuario.token}`,
           },
-        );
+        },
+      );
 
-        const transacoesAchatadas =
-          resposta.data.periodos?.flatMap(
-            (periodo) => periodo.transacoes || [],
-          ) || [];
+      // 1. Concatena todas as transações em uma lista única
+      const transacoesAchatadas =
+        resposta.data.periodos?.flatMap(
+          (periodo) => periodo.transacoes || [],
+        ) || [];
 
-        console.log("===== TRANSAÇÕES DO USUÁRIO CARREGADAS =====");
-        console.log(transacoesAchatadas);
-        console.log("============================================");
-        setTransacoes(transacoesAchatadas);
+      console.log("===== TRANSAÇÕES DO USUÁRIO CARREGADAS =====");
+      console.log(transacoesAchatadas);
+      console.log("============================================");
+      setTransacoes(transacoesAchatadas);
 
-        if (
-          !resposta.data.periodos ||
-          resposta.data.periodos.length === 0 ||
-          transacoesAchatadas.length === 0
-        ) {
-          setModalUploadAberto(true);
-        }
+      const apenasParceladas = transacoesAchatadas.filter(
+        (t) => t.parcela?.eParcela === true
+      );
 
-        const listaTotaisMes = [];
-        const dadosFormatados =
-          resposta.data.periodos?.map((p) => {
-            let totalEntrada = 0;
-            let totalSaida = 0;
+      console.log("===== PARCELAS GUARDADAS =====");
+      console.log(apenasParceladas);
+      console.log("============================================");
+      setParcelas(apenasParceladas);
 
-            if (p.transacoes && Array.isArray(p.transacoes)) {
-              p.transacoes.forEach((t) => {
-                if (t.tipo === "credito") totalEntrada += t.valor;
-                else if (t.tipo === "debito") totalSaida += t.valor;
-              });
-            }
-
-            let saldoMes = totalEntrada - totalSaida;
-
-            const rotuloPeriodo = p.mesAno || `${p.mes}/${p.ano}`;
-
-            listaTotaisMes.push({
-              periodo: rotuloPeriodo,
-              total: saldoMes,
-            });
-
-            return {
-              periodo: rotuloPeriodo,
-              entrada: totalEntrada,
-              saida: totalSaida,
-            };
-          }) || [];
-
-        setTotalMes(listaTotaisMes);
-        setValores(dadosFormatados);
-      } catch (error) {
-        console.error("Erro ao buscar dados do usuário:", error);
+      if (
+        !resposta.data.periodos ||
+        resposta.data.periodos.length === 0 ||
+        transacoesAchatadas.length === 0
+      ) {
         setModalUploadAberto(true);
       }
-    };
 
-    buscarUsuario();
-  }, [usuarioId]);
+      const listaTotaisMes = [];
+      const dadosFormatados =
+        resposta.data.periodos?.map((p) => {
+          let totalEntrada = 0;
+          let totalSaida = 0;
+
+          if (p.transacoes && Array.isArray(p.transacoes)) {
+            p.transacoes.forEach((t) => {
+              if (t.tipo === "credito") totalEntrada += t.valor;
+              else if (t.tipo === "debito") totalSaida += t.valor;
+            });
+          }
+          
+          let saldoMes = totalEntrada - totalSaida;
+          const rotuloPeriodo = p.mesAno || `${p.mes}/${p.ano}`;
+
+          listaTotaisMes.push({
+            periodo: rotuloPeriodo,
+            total: saldoMes,
+          });
+
+          return {
+            periodo: rotuloPeriodo,
+            entrada: totalEntrada,
+            saida: totalSaida,
+          };
+        }) || [];
+
+      setTotalMes(listaTotaisMes);
+      setValores(dadosFormatados);
+    } catch (error) {
+      console.error("Erro ao buscar dados do usuário:", error);
+      setModalUploadAberto(true);
+    }
+  };
+
+  buscarUsuario();
+}, [usuarioId]);
 
   return (
     <div className="h-screen w-screen">
