@@ -18,16 +18,13 @@ function calcularProjecaoNoFrontend(transacoes) {
   ];
 
   transacoes.forEach(t => {
-    // Apenas transações que são parcelas de fato
     if (!t.parcela?.eParcela) return;
 
-    // Precisamos saber a qual fatura essa "parcelaAtual" se refere.
     let mesBase, anoBase;
     
     if (t.periodoFatura && t.periodoFatura.includes("/")) {
       [mesBase, anoBase] = t.periodoFatura.split("/").map(Number);
     } else if (t.data) {
-      // Fallback de segurança para a data da compra
       const partesData = t.data.split("/");
       if (partesData.length >= 3) {
         mesBase = Number(partesData[1]);
@@ -41,13 +38,10 @@ function calcularProjecaoNoFrontend(transacoes) {
 
     const atual = t.parcela.parcelaAtual;
     const final = t.parcela.parcelaFinal;
-
-    // A data base de cálculo é o mês da fatura atual
     const dataFaturaBase = new Date(anoBase, mesBase - 1, 1);
 
     for (let i = atual; i <= final; i++) {
       const mesesAAdicionar = i - atual;
-      // Calcula o mês futuro da parcela com exatidão
       const dataParcela = new Date(dataFaturaBase.getFullYear(), dataFaturaBase.getMonth() + mesesAAdicionar, 1);
       
       const chaveMesAno = `${dataParcela.getMonth() + 1}/${dataParcela.getFullYear()}`;
@@ -68,12 +62,11 @@ function calcularProjecaoNoFrontend(transacoes) {
         parcelaNumero: `${i}/${final}`,
         categoria: t.categoria,
         tipo: t.tipo,
-        dataCompraOriginal: t.data // Guarda a data real para exibir
+        dataCompraOriginal: t.data
       });
     }
   });
 
-  // Ordena cronologicamente para garantir que o Dropdown exiba de Maio -> Junho -> Julho...
   const cronogramaOrdenado = {};
   Object.keys(cronograma)
     .sort((a, b) => {
@@ -99,8 +92,10 @@ function Dashboard() {
   const [parcelas, setParcelas] = useState([]);
   const [modalUploadAberto, setModalUploadAberto] = useState(false);
 
-  // ESTADOS DO NOVO MENU DE PROJEÇÃO
-  const [mesSelecionado, setMesSelecionado] = useState(""); // Vazio = Todas as transações
+  // ESTADO DA ABA ATIVA NO MOBILE
+  const [abaAtiva, setAbaAtiva] = useState("transacoes"); // "transacoes" | "graficos"
+
+  const [mesSelecionado, setMesSelecionado] = useState("");
 
   const fileInputRef = useRef(null);
   const [arquivo, setArquivo] = useState(null);
@@ -110,7 +105,6 @@ function Dashboard() {
   const debitos = transacoes.filter((item) => item.tipo === "debito");
   const graficoP = debitos.reduce((soma, item) => soma + item.valor, 0);
 
-  // MATERIAL UI MENU STATES
   const id = React.useId();
   const buttonId = `${id}-button`;
   const menuId = `${id}-menu`;
@@ -123,39 +117,24 @@ function Dashboard() {
     setAnchorEl(null);
   };
 
-  // ==========================================
-  // GERAÇÃO DO CRONOGRAMA DE PARCELAS (USEMEMO)
-  // ==========================================
   const projecaoFutura = useMemo(() => {
     return calcularProjecaoNoFrontend(transacoes);
   }, [transacoes]);
 
   const mesesProjetados = Object.keys(projecaoFutura);
 
-  // Restante da formatação dos gráficos...
   const data = Object.values(
     debitos.reduce((acc, item) => {
       const cat = item.categoria || "Outros";
-
       if (!acc[cat]) {
-        acc[cat] = {
-          id: cat,
-          value: 0,
-          label: cat,
-        };
+        acc[cat] = { id: cat, value: 0, label: cat };
       }
-
       acc[cat].value += item.valor;
       return acc;
     }, {}),
   ).map((item) => {
-    const percent =
-      graficoP > 0 ? ((item.value / graficoP) * 100).toFixed(1) : 0;
-
-    return {
-      ...item,
-      label: `${item.label} (${percent}%)`,
-    };
+    const percent = graficoP > 0 ? ((item.value / graficoP) * 100).toFixed(1) : 0;
+    return { ...item, label: `${item.label} (${percent}%)` };
   });
 
   const handleUploadExtrato = async (e) => {
@@ -231,7 +210,6 @@ function Dashboard() {
           },
         );
 
-        // INJEÇÃO DA DATA DA FATURA NA TRANSAÇÃO PARA A PROJEÇÃO FUNCIONAR PERFEITAMENTE
         const transacoesAchatadas =
           resposta.data.periodos?.flatMap((periodo) => {
             const mesAnoFatura = periodo.mesAno || `${periodo.mes}/${periodo.ano}`;
@@ -295,8 +273,211 @@ function Dashboard() {
     buscarUsuario();
   }, [usuarioId]);
 
+  // ==========================================
+  // COLUNA DE TRANSAÇÕES (reutilizada em desktop e mobile)
+  // ==========================================
+  const colunaTransacoes = (
+    <div className="flex flex-col gap-2">
+      {mesSelecionado && projecaoFutura[mesSelecionado] ? (
+        <>
+          <div className="bg-orange-50 border border-orange-200 p-4 rounded shadow-sm mb-2">
+            <p className="text-orange-800 font-bold text-lg">
+              Total Projetado: R$ {projecaoFutura[mesSelecionado].totalMes.toFixed(2)}
+            </p>
+            <p className="text-sm text-orange-600">
+              {projecaoFutura[mesSelecionado].transacoes.length} parcelas para vencer neste mês.
+            </p>
+          </div>
+
+          {projecaoFutura[mesSelecionado].transacoes.map((t, index) => (
+            <div key={index} className="p-3 border rounded shadow-sm bg-white flex justify-between items-center">
+              <div>
+                <p className="font-semibold text-gray-800">{t.descricao}</p>
+                <div className="flex flex-wrap gap-2 text-xs text-gray-500 mt-1 items-center">
+                  <span className="bg-gray-100 px-2 py-0.5 rounded">{t.categoria}</span>
+                  <span className="bg-orange-100 text-orange-800 px-2 py-0.5 rounded font-bold">
+                    Parcela {t.parcelaNumero}
+                  </span>
+                  <span className="text-[10px] text-gray-400">Comprado em {t.dataCompraOriginal}</span>
+                </div>
+              </div>
+              <div className="text-right ml-2 shrink-0">
+                <p className={`font-bold ${t.tipo === "debito" ? "text-red-500" : "text-green-500"}`}>
+                  {t.tipo === "debito" ? "-" : "+"} R$ {t.valor.toFixed(2)}
+                </p>
+              </div>
+            </div>
+          ))}
+        </>
+      ) : (
+        transacoes && transacoes.length > 0 ? (
+          transacoes.map((transacao, index) => (
+            <div
+              key={index}
+              className="p-3 border rounded shadow-sm bg-white flex justify-between items-center"
+            >
+              <div className="min-w-0 mr-2">
+                <p className="font-semibold text-gray-800 truncate">
+                  {transacao.descricao}
+                </p>
+                <div className="flex flex-wrap gap-2 text-xs text-gray-500 mt-1">
+                  <span className="bg-gray-100 px-2 py-0.5 rounded">
+                    {transacao.categoria}
+                  </span>
+                  <span>{transacao.data}</span>
+                </div>
+              </div>
+
+              <div className="text-right shrink-0">
+                <p className={`font-bold ${transacao.tipo === "debito" ? "text-red-500" : "text-green-500"}`}>
+                  {transacao.tipo === "debito" ? "-" : "+"} R${" "}
+                  {transacao.valor.toFixed(2)}
+                </p>
+                <p className="text-xs text-gray-400 capitalize">
+                  {transacao.tipo}
+                </p>
+                <p className="text-xs text-orange-500 font-bold mt-1">
+                  {transacao.parcela?.eParcela
+                    ? `Parcela ${transacao.parcela.parcelaAtual}/${transacao.parcela.parcelaFinal}`
+                    : ""}
+                </p>
+              </div>
+            </div>
+          ))
+        ) : (
+          <p className="text-gray-500">Nenhuma transação encontrada.</p>
+        )
+      )}
+    </div>
+  );
+
+  // ==========================================
+  // COLUNA DE GRÁFICOS (reutilizada em desktop e mobile)
+  // ==========================================
+  const colunaGraficos = (
+    <div className="w-full bg-gray-100 p-4">
+      <h1 className="text-2xl font-bold mb-4">Estatísticas</h1>
+
+      <div className="bg-white rounded shadow p-4">
+        <div className="bg-gray-100 p-4">
+          {/* Grid responsivo: 2 colunas no desktop, 1 no mobile */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Evolução Financeira — ocupa largura total */}
+            <div className="col-span-1 md:col-span-2 bg-white rounded-xl shadow p-4 overflow-x-auto">
+              <h2 className="text-xl font-bold mb-4">Evolução Financeira</h2>
+              <LineChart
+                dataset={totalMes}
+                xAxis={[{ scaleType: "point", dataKey: "periodo" }]}
+                series={[
+                  {
+                    dataKey: "total",
+                    label: "Saldo do Período",
+                    color: "#10b981",
+                    curve: "catmullRom",
+                    showMark: true,
+                  },
+                ]}
+                height={300}
+                margin={{ top: 20, bottom: 30, left: 50, right: 20 }}
+              />
+            </div>
+
+            {/* Gastos por Categoria */}
+            <div className="bg-white rounded-xl shadow p-4 flex flex-col overflow-x-auto">
+              <h2 className="text-xl font-bold mb-4">Gastos por Categoria</h2>
+              <div className="flex-1 flex items-center justify-center">
+                <PieChart
+                  series={[{ data, arcLabel: () => "" }]}
+                  slotProps={{
+                    legend: {
+                      direction: "column",
+                      position: {
+                        vertical: "middle",
+                        horizontal: "right",
+                      },
+                      labelStyle: { fontSize: 11 },
+                    },
+                  }}
+                  width={420}
+                  height={250}
+                />
+              </div>
+            </div>
+
+            {/* Comparativo */}
+            <div className="bg-white rounded-xl shadow p-4 overflow-x-auto">
+              <h2 className="text-xl font-bold mb-4">Comparativo</h2>
+              <BarChart
+                dataset={valores}
+                xAxis={[{ scaleType: "band", dataKey: "periodo" }]}
+                series={[
+                  { dataKey: "entrada", label: "Entrada", color: "#4ade80" },
+                  { dataKey: "saida", label: "Saída", color: "#f87171" },
+                ]}
+                height={300}
+                margin={{ top: 20, bottom: 30, left: 40, right: 10 }}
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
+  // ==========================================
+  // HEADER DE TRANSAÇÕES (reutilizado)
+  // ==========================================
+  const headerTransacoes = (
+    <div className="flex justify-between items-center mb-4 gap-2 flex-wrap">
+      <h1 className="text-xl font-bold">Suas Transações</h1>
+      <div className="flex items-center gap-2">
+        <Button
+          id={buttonId}
+          aria-controls={open ? menuId : undefined}
+          aria-haspopup="true"
+          aria-expanded={open}
+          onClick={handleClick}
+          sx={{ color: "#4CAF50", backgroundColor: "white" }}
+          variant="contained"
+          size="small"
+        >
+          {mesSelecionado ? projecaoFutura[mesSelecionado].rotulo : "Mês Atual"}
+        </Button>
+        <Menu
+          id={menuId}
+          anchorEl={anchorEl}
+          open={open}
+          onClose={handleClose}
+          slotProps={{
+            list: { "aria-labelledby": buttonId },
+          }}
+        >
+          <MenuItem onClick={() => { setMesSelecionado(""); handleClose(); }}>
+            Mês Atual / Todas
+          </MenuItem>
+          {mesesProjetados.map(chave => (
+            <MenuItem
+              key={chave}
+              onClick={() => { setMesSelecionado(chave); handleClose(); }}
+            >
+              {projecaoFutura[chave].rotulo}
+            </MenuItem>
+          ))}
+        </Menu>
+        <Button
+          variant="contained"
+          sx={{ backgroundColor: "#4CAF50", color: "white" }}
+          onClick={() => setModalUploadAberto(true)}
+          size="small"
+        >
+          + Importar
+        </Button>
+      </div>
+    </div>
+  );
+
   return (
-    <div className="h-screen w-screen">
+    <div className="h-screen w-screen flex flex-col">
       <ModalPersonalizado
         onClose={() => transacoes.length > 0 && setModalUploadAberto(false)}
         isOpen={modalUploadAberto}
@@ -380,206 +561,74 @@ function Dashboard() {
         </form>
       </ModalPersonalizado>
 
-      <div className="flex h-full w-full">
-        {/* COLUNA ESQUERDA - LISTA DE TRANSAÇÕES */}
+      {/* =============================================
+          LAYOUT DESKTOP: duas colunas lado a lado
+          (md: e acima)
+      ============================================= */}
+      <div className="hidden md:flex h-full w-full">
+        {/* Coluna Esquerda — Transações */}
         <div className="h-full w-1/3 p-4 bg-gray-50 overflow-y-auto scrollbar-thin">
-          <div className="flex justify-between items-center mb-4">
-            <h1 className="text-xl font-bold">Suas Transações</h1>
-            <Button
-              id={buttonId}
-              aria-controls={open ? menuId : undefined}
-              aria-haspopup="true"
-              aria-expanded={open}
-              onClick={handleClick}
-            >
-              {mesSelecionado ? projecaoFutura[mesSelecionado].rotulo : "Mês Atual"}
-            </Button>
-            <Menu
-              id={menuId}
-              anchorEl={anchorEl}
-              open={open}
-              onClose={handleClose}
-              slotProps={{
-                list: {
-                  "aria-labelledby": buttonId,
-                },
-              }}
-            >
-              {/* Opção para limpar o filtro e ver tudo */}
-              <MenuItem onClick={() => { setMesSelecionado(""); handleClose(); }}>
-                Mês Atual / Todas
-              </MenuItem>
-              
-              {/* Lista os meses dinamicamente gerados pelo useMemo (agora ordenados!) */}
-              {mesesProjetados.map(chave => (
-                <MenuItem 
-                  key={chave} 
-                  onClick={() => { setMesSelecionado(chave); handleClose(); }}
-                >
-                  {projecaoFutura[chave].rotulo}
-                </MenuItem>
-              ))}
-            </Menu>
-            <button
-              onClick={() => setModalUploadAberto(true)}
-              className="px-3 py-1.5 bg-green-500 text-white rounded-lg text-xs font-semibold hover:bg-green-600 shadow transition-colors"
-            >
-              + Importar
-            </button>
-          </div>
-
-          <div className="flex flex-col gap-2">
-            {/* CONDICIONAL: Mostra Projeção do Mês OU Mostra Lista Completa */}
-            {mesSelecionado && projecaoFutura[mesSelecionado] ? (
-              <>
-                <div className="bg-orange-50 border border-orange-200 p-4 rounded shadow-sm mb-2">
-                  <p className="text-orange-800 font-bold text-lg">
-                    Total Projetado: R$ {projecaoFutura[mesSelecionado].totalMes.toFixed(2)}
-                  </p>
-                  <p className="text-sm text-orange-600">
-                    {projecaoFutura[mesSelecionado].transacoes.length} parcelas para vencer neste mês.
-                  </p>
-                </div>
-
-                {projecaoFutura[mesSelecionado].transacoes.map((t, index) => (
-                  <div key={index} className="p-3 border rounded shadow-sm bg-white flex justify-between items-center">
-                    <div>
-                      <p className="font-semibold text-gray-800">{t.descricao}</p>
-                      <div className="flex gap-2 text-xs text-gray-500 mt-1 items-center">
-                        <span className="bg-gray-100 px-2 py-0.5 rounded">{t.categoria}</span>
-                        <span className="bg-orange-100 text-orange-800 px-2 py-0.5 rounded font-bold">
-                          Parcela {t.parcelaNumero}
-                        </span>
-                        <span className="text-[10px] text-gray-400">Comprado em {t.dataCompraOriginal}</span>
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <p className={`font-bold ${t.tipo === "debito" ? "text-red-500" : "text-green-500"}`}>
-                        {t.tipo === "debito" ? "-" : "+"} R$ {t.valor.toFixed(2)}
-                      </p>
-                    </div>
-                  </div>
-                ))}
-              </>
-            ) : (
-              /* LISTA NORMAL DE TODAS AS TRANSAÇÕES */
-              transacoes && transacoes.length > 0 ? (
-                transacoes.map((transacao, index) => (
-                  <div
-                    key={index}
-                    className="p-3 border rounded shadow-sm bg-white flex justify-between items-center"
-                  >
-                    <div>
-                      <p className="font-semibold text-gray-800">
-                        {transacao.descricao}
-                      </p>
-                      <div className="flex gap-2 text-xs text-gray-500 mt-1">
-                        <span className="bg-gray-100 px-2 py-0.5 rounded">
-                          {transacao.categoria}
-                        </span>
-                        <span>{transacao.data}</span>
-                      </div>
-                    </div>
-
-                    <div className="text-right">
-                      <p
-                        className={`font-bold ${transacao.tipo === "debito" ? "text-red-500" : "text-green-500"}`}
-                      >
-                        {transacao.tipo === "debito" ? "-" : "+"} R${" "}
-                        {transacao.valor.toFixed(2)}
-                      </p>
-                      <p className="text-xs text-gray-400 capitalize">
-                        {transacao.tipo}
-                      </p>
-                      <p className="text-xs text-orange-500 font-bold mt-1">
-                        {transacao.parcela?.eParcela
-                          ? `Parcela ${transacao.parcela.parcelaAtual}/${transacao.parcela.parcelaFinal}`
-                          : ""}
-                      </p>
-                    </div>
-                  </div>
-                ))
-              ) : (
-                <p className="text-gray-500">Nenhuma transação encontrada.</p>
-              )
-            )}
-          </div>
+          {headerTransacoes}
+          {colunaTransacoes}
         </div>
 
-        {/* COLUNA DIREITA - GRÁFICOS */}
-        <div className="h-full w-full bg-gray-200">
-          <div className="w-full h-full bg-gray-100 p-4">
-            <h1 className="text-2xl font-bold mb-4">Estatísticas</h1>
+        {/* Coluna Direita — Gráficos */}
+        <div className="h-full w-full overflow-y-auto bg-gray-200">
+          {colunaGraficos}
+        </div>
+      </div>
 
-            <div className="bg-white rounded shadow p-4">
-              <div className="h-full bg-gray-100 p-4">
-                <div className="grid grid-cols-2 grid-rows-2 gap-4 h-full">
-                  <div className="col-span-2 bg-white rounded-xl shadow p-4">
-                    <h2 className="text-xl font-bold mb-4">
-                      Evolução Financeira
-                    </h2>
-                    <LineChart
-                      dataset={totalMes}
-                      xAxis={[{ scaleType: "point", dataKey: "periodo" }]}
-                      series={[
-                        {
-                          dataKey: "total",
-                          label: "Saldo do Período",
-                          color: "#10b981",
-                          curve: "catmullRom",
-                          showMark: true,
-                        },
-                      ]}
-                      height={300}
-                      margin={{ top: 20, bottom: 30, left: 50, right: 20 }}
-                    />
-                  </div>
-
-                  <div className="bg-white rounded-xl shadow p-4 flex flex-col">
-                    <h2 className="text-xl font-bold mb-4">
-                      Gastos por Categoria
-                    </h2>
-                    <div className="flex-1 flex items-center justify-center">
-                      <PieChart
-                        series={[{ data, arcLabel: () => "" }]}
-                        slotProps={{
-                          legend: {
-                            direction: "column",
-                            position: {
-                              vertical: "middle",
-                              horizontal: "right",
-                            },
-                            labelStyle: { fontSize: 13 },
-                          },
-                        }}
-                        width={450}
-                        height={250}
-                      />
-                    </div>
-                  </div>
-
-                  <div className="bg-white rounded-xl shadow p-4">
-                    <h2 className="text-xl font-bold mb-4">Comparativo</h2>
-                    <BarChart
-                      dataset={valores}
-                      xAxis={[{ scaleType: "band", dataKey: "periodo" }]}
-                      series={[
-                        {
-                          dataKey: "entrada",
-                          label: "Entrada",
-                          color: "#4ade80",
-                        },
-                        { dataKey: "saida", label: "Saída", color: "#f87171" },
-                      ]}
-                      height={300}
-                      margin={{ top: 20, bottom: 30, left: 40, right: 10 }}
-                    />
-                  </div>
-                </div>
-              </div>
+      {/* =============================================
+          LAYOUT MOBILE: abas na parte inferior
+          (abaixo de md)
+      ============================================= */}
+      <div className="flex flex-col h-full md:hidden">
+        {/* Conteúdo da aba ativa */}
+        <div className="flex-1 overflow-y-auto">
+          {abaAtiva === "transacoes" ? (
+            <div className="p-4 bg-gray-50 min-h-full">
+              {headerTransacoes}
+              {colunaTransacoes}
             </div>
-          </div>
+          ) : (
+            <div className="bg-gray-200 min-h-full">
+              {colunaGraficos}
+            </div>
+          )}
         </div>
+
+        {/* Barra de abas fixa na parte inferior */}
+        <nav className="flex border-t border-gray-200 bg-white shrink-0">
+          <button
+            onClick={() => setAbaAtiva("transacoes")}
+            className={`flex-1 flex flex-col items-center justify-center py-3 gap-0.5 text-xs font-semibold transition-colors ${
+              abaAtiva === "transacoes"
+                ? "text-green-600 border-t-2 border-green-500 -mt-px"
+                : "text-gray-500"
+            }`}
+          >
+            {/* Ícone lista */}
+            <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 10h16M4 14h16M4 18h16" />
+            </svg>
+            Transações
+          </button>
+
+          <button
+            onClick={() => setAbaAtiva("graficos")}
+            className={`flex-1 flex flex-col items-center justify-center py-3 gap-0.5 text-xs font-semibold transition-colors ${
+              abaAtiva === "graficos"
+                ? "text-green-600 border-t-2 border-green-500 -mt-px"
+                : "text-gray-500"
+            }`}
+          >
+            {/* Ícone gráfico */}
+            <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+            </svg>
+            Estatísticas
+          </button>
+        </nav>
       </div>
     </div>
   );
