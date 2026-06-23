@@ -19,21 +19,39 @@ function calcularProjecaoNoFrontend(transacoes) {
 
   transacoes.forEach(t => {
     // Apenas transações que são parcelas de fato
-    if (!t.parcela?.eParcela || !t.data) return;
+    if (!t.parcela?.eParcela) return;
 
-    const [dia, mes, ano] = t.data.split("/").map(Number);
+    // Precisamos saber a qual fatura essa "parcelaAtual" se refere.
+    let mesBase, anoBase;
+    
+    if (t.periodoFatura && t.periodoFatura.includes("/")) {
+      [mesBase, anoBase] = t.periodoFatura.split("/").map(Number);
+    } else if (t.data) {
+      // Fallback de segurança para a data da compra
+      const partesData = t.data.split("/");
+      if (partesData.length >= 3) {
+        mesBase = Number(partesData[1]);
+        anoBase = Number(partesData[2]);
+      } else {
+        return;
+      }
+    } else {
+      return;
+    }
+
     const atual = t.parcela.parcelaAtual;
     const final = t.parcela.parcelaFinal;
 
-    const dataBase = new Date(ano, mes - 1, dia);
+    // A data base de cálculo é o mês da fatura atual
+    const dataFaturaBase = new Date(anoBase, mesBase - 1, 1);
 
     for (let i = atual; i <= final; i++) {
       const mesesAAdicionar = i - atual;
-      // Calcula o mês futuro da parcela
-      const dataParcela = new Date(dataBase.getFullYear(), dataBase.getMonth() + mesesAAdicionar, 1);
+      // Calcula o mês futuro da parcela com exatidão
+      const dataParcela = new Date(dataFaturaBase.getFullYear(), dataFaturaBase.getMonth() + mesesAAdicionar, 1);
       
       const chaveMesAno = `${dataParcela.getMonth() + 1}/${dataParcela.getFullYear()}`;
-      const rotuloAmigavel = `${nomesMeses[dataParcela.getMonth()]}/${dataParcela.getFullYear()}`;
+      const rotuloAmigavel = `${nomesMeses[dataParcela.getMonth()]} / ${dataParcela.getFullYear()}`;
 
       if (!cronograma[chaveMesAno]) {
         cronograma[chaveMesAno] = {
@@ -49,12 +67,25 @@ function calcularProjecaoNoFrontend(transacoes) {
         valor: t.valor,
         parcelaNumero: `${i}/${final}`,
         categoria: t.categoria,
-        tipo: t.tipo
+        tipo: t.tipo,
+        dataCompraOriginal: t.data // Guarda a data real para exibir
       });
     }
   });
 
-  return cronograma;
+  // Ordena cronologicamente para garantir que o Dropdown exiba de Maio -> Junho -> Julho...
+  const cronogramaOrdenado = {};
+  Object.keys(cronograma)
+    .sort((a, b) => {
+      const [mesA, anoA] = a.split('/').map(Number);
+      const [mesB, anoB] = b.split('/').map(Number);
+      return anoA !== anoB ? anoA - anoB : mesA - mesB;
+    })
+    .forEach(key => {
+      cronogramaOrdenado[key] = cronograma[key];
+    });
+
+  return cronogramaOrdenado;
 }
 
 function Dashboard() {
@@ -156,11 +187,17 @@ function Dashboard() {
 
       if (resposta.data) {
         alert("Extrato processado com sucesso!");
-
+        
         const novasTransacoes =
-          resposta.data.periodos?.flatMap((p) => p.transacoes || []) || [];
-        setTransacoes(novasTransacoes);
+          resposta.data.periodos?.flatMap((periodo) => {
+            const mesAno = periodo.mesAno || `${periodo.mes}/${periodo.ano}`;
+            return (periodo.transacoes || []).map(t => ({
+              ...t,
+              periodoFatura: mesAno 
+            }));
+          }) || [];
 
+        setTransacoes(novasTransacoes);
         setArquivo(null);
         setSenha("");
         setModalUploadAberto(false);
@@ -194,10 +231,15 @@ function Dashboard() {
           },
         );
 
+        // INJEÇÃO DA DATA DA FATURA NA TRANSAÇÃO PARA A PROJEÇÃO FUNCIONAR PERFEITAMENTE
         const transacoesAchatadas =
-          resposta.data.periodos?.flatMap(
-            (periodo) => periodo.transacoes || [],
-          ) || [];
+          resposta.data.periodos?.flatMap((periodo) => {
+            const mesAnoFatura = periodo.mesAno || `${periodo.mes}/${periodo.ano}`;
+            return (periodo.transacoes || []).map(t => ({
+              ...t,
+              periodoFatura: mesAnoFatura 
+            }));
+          }) || [];
 
         setTransacoes(transacoesAchatadas);
 
@@ -368,7 +410,7 @@ function Dashboard() {
                 Mês Atual / Todas
               </MenuItem>
               
-              {/* Lista os meses dinamicamente gerados pelo useMemo */}
+              {/* Lista os meses dinamicamente gerados pelo useMemo (agora ordenados!) */}
               {mesesProjetados.map(chave => (
                 <MenuItem 
                   key={chave} 
@@ -403,11 +445,12 @@ function Dashboard() {
                   <div key={index} className="p-3 border rounded shadow-sm bg-white flex justify-between items-center">
                     <div>
                       <p className="font-semibold text-gray-800">{t.descricao}</p>
-                      <div className="flex gap-2 text-xs text-gray-500 mt-1">
+                      <div className="flex gap-2 text-xs text-gray-500 mt-1 items-center">
                         <span className="bg-gray-100 px-2 py-0.5 rounded">{t.categoria}</span>
                         <span className="bg-orange-100 text-orange-800 px-2 py-0.5 rounded font-bold">
                           Parcela {t.parcelaNumero}
                         </span>
+                        <span className="text-[10px] text-gray-400">Comprado em {t.dataCompraOriginal}</span>
                       </div>
                     </div>
                     <div className="text-right">
