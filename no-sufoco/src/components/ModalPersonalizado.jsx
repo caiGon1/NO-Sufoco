@@ -6,10 +6,10 @@ function ModalPersonalizado({ isOpen, onClose, titulo, children, tamanho = "md" 
   
 
   const larguras = {
-    sm: "max-w-sm", // 384px
-    md: "max-w-md", // 448px
-    lg: "max-w-lg", // 512px
-    xl: "max-w-xl", // 576px
+    sm: "max-w-sm",
+    md: "max-w-md", 
+    lg: "max-w-lg", 
+    xl: "max-w-xl", 
   };
 
   return (
