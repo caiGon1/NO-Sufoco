@@ -40,7 +40,7 @@ export default function Acoes() {
 
   // Helper para pegar o token
   const getAuthHeader = () => ({
-    headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+    headers: { Authorization: `Bearer ${token}` },
   });
 
   useEffect(() => {
