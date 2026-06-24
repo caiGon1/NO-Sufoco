@@ -21,6 +21,9 @@ import NotificationsActiveIcon from "@mui/icons-material/NotificationsActive";
 import ShowChartIcon from "@mui/icons-material/ShowChart";
 
 // 🟢 Dica: Crie uma instância do axios para facilitar
+const usuario = JSON.parse(localStorage.getItem("usuario") || "{}");
+const token = usuario.token;
+
 const api = axios.create({
   baseURL: "https://backend-no-sufoco.vercel.app",
 });
@@ -86,9 +89,6 @@ const handleSalvarMonitoramento = async () => {
         monitoraGlobal: acoesData.monitora,
         alteracoesAtivos: acoesData.ativos,
       };
-
-      // O Axios envia o JSON automaticamente. 
-      // O cabeçalho Authorization é a chave para o CORS funcionar com o seu Middleware.
       await api.put("/api/acoes/favoritos", payload, {
         headers: { Authorization: `Bearer ${token}` }
       });
