@@ -19,6 +19,8 @@ import {
 import AddCircleOutlineOutlinedIcon from "@mui/icons-material/AddCircleOutlineOutlined";
 import NotificationsActiveIcon from "@mui/icons-material/NotificationsActive";
 import ShowChartIcon from "@mui/icons-material/ShowChart";
+import ModalPersonalizado from '../components/ModalPersonalizado'; 
+import SeletorAtivos from '../components/SeletorAtivos';
 
 // 🟢 Dica: Crie uma instância do axios para facilitar
 const usuario = JSON.parse(localStorage.getItem("usuario") || "{}");
@@ -37,6 +39,7 @@ export default function Acoes() {
     message: "",
     type: "success",
   });
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   // Helper para pegar o token
   const getAuthHeader = () => ({
@@ -82,7 +85,7 @@ export default function Acoes() {
 const handleSalvarMonitoramento = async () => {
     setSalvando(true);
     try {
-      const token = localStorage.getItem("token");
+
       if (!token) throw new Error("Usuário não autenticado");
 
       const payload = {
@@ -99,6 +102,21 @@ const handleSalvarMonitoramento = async () => {
       mostrarToast(error.response?.data?.error || "Erro ao salvar.", "error");
     } finally {
       setSalvando(false);
+    }
+  };
+
+  const handleSalvarNovosAtivos = async (lista) => {
+    try {
+      // Chamada do POST que criamos no seu backend
+      await api.post('/api/acoes/favoritos', { ativosSelecionados: lista }, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      
+      mostrarToast("Ativos adicionados com sucesso!", "success");
+      setIsModalOpen(false);
+      buscarMeusAtivos(); // Atualiza a lista da tela
+    } catch (error) {
+      mostrarToast("Erro ao adicionar ativos", "error");
     }
   };
 
@@ -160,7 +178,7 @@ const handleSalvarMonitoramento = async () => {
             color="success"
             startIcon={<AddCircleOutlineOutlinedIcon />}
 
-            // onClick={() => rotear para a tela de adicionar}
+            onClick={() => setIsModalOpen(true)}
           >
             Explorar Ativos
           </Button>
@@ -294,6 +312,16 @@ const handleSalvarMonitoramento = async () => {
           {toast.message}
         </Alert>
       </Snackbar>
+      <ModalPersonalizado 
+        isOpen={isModalOpen} 
+        onClose={() => setIsModalOpen(false)} 
+        titulo="Adicionar Ativos"
+      >
+        <SeletorAtivos 
+          onSalvar={handleSalvarNovosAtivos} 
+          onClose={() => setIsModalOpen(false)} 
+        />
+      </ModalPersonalizado>
     </Container>
   );
 }
