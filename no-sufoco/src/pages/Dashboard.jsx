@@ -1,11 +1,14 @@
 import * as React from "react";
 import { useEffect, useState, useRef, useMemo } from "react";
 import axios from "axios";
+import { useNavigate } from "react-router-dom";
 import { BarChart } from "@mui/x-charts/BarChart";
 import { PieChart } from "@mui/x-charts";
 import { LineChart } from "@mui/x-charts";
 import ModalPersonalizado from "../components/ModalPersonalizado";
 import { Button, Menu, MenuItem } from "@mui/material";
+import ShowChartIcon from '@mui/icons-material/ShowChart';
+import LogoutIcon from '@mui/icons-material/Logout'; // 🟢 1. Importação do ícone de Sair
 
 // ==========================================
 // FUNÇÃO DE PROJEÇÃO DE PARCELAS FUTURAS
@@ -82,6 +85,8 @@ function calcularProjecaoNoFrontend(transacoes) {
 }
 
 function Dashboard() {
+  const navigate = useNavigate();
+
   const usuario = JSON.parse(localStorage.getItem("usuario") || "{}");
   const usuarioId = usuario._id || usuario.id;
 
@@ -93,7 +98,7 @@ function Dashboard() {
   const [modalUploadAberto, setModalUploadAberto] = useState(false);
 
   // ESTADO DA ABA ATIVA NO MOBILE
-  const [abaAtiva, setAbaAtiva] = useState("transacoes"); // "transacoes" | "graficos"
+  const [abaAtiva, setAbaAtiva] = useState("transacoes");
 
   const [mesSelecionado, setMesSelecionado] = useState("");
 
@@ -115,6 +120,12 @@ function Dashboard() {
   };
   const handleClose = () => {
     setAnchorEl(null);
+  };
+
+  // 🟢 2. Função de Logout criada aqui
+  const handleLogout = () => {
+    localStorage.clear(); // Limpa todo o LocalStorage (token, dados do usuário, etc)
+    navigate('/'); // Ajuste para a rota de login correta se a sua for diferente (ex: '/login')
   };
 
   const projecaoFutura = useMemo(() => {
@@ -330,8 +341,7 @@ function Dashboard() {
 
               <div className="text-right shrink-0">
                 <p className={`font-bold ${transacao.tipo === "debito" ? "text-red-500" : "text-green-500"}`}>
-                  {transacao.tipo === "debito" ? "-" : "+"} R${" "}
-                  {transacao.valor.toFixed(2)}
+                  {transacao.tipo === "debito" ? "-" : "+"} R$ {transacao.valor.toFixed(2)}
                 </p>
                 <p className="text-xs text-gray-400 capitalize">
                   {transacao.tipo}
@@ -360,9 +370,7 @@ function Dashboard() {
 
       <div className="bg-white rounded shadow p-4">
         <div className="bg-gray-100 p-4">
-          {/* Grid responsivo: 2 colunas no desktop, 1 no mobile */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* Evolução Financeira — ocupa largura total */}
             <div className="col-span-1 md:col-span-2 bg-white rounded-xl shadow p-4 overflow-x-auto">
               <h2 className="text-xl font-bold mb-4">Evolução Financeira</h2>
               <LineChart
@@ -382,7 +390,6 @@ function Dashboard() {
               />
             </div>
 
-            {/* Gastos por Categoria */}
             <div className="bg-white rounded-xl shadow p-4 flex flex-col overflow-x-auto">
               <h2 className="text-xl font-bold mb-4">Gastos por Categoria</h2>
               <div className="flex-1 flex items-center justify-center">
@@ -404,7 +411,6 @@ function Dashboard() {
               </div>
             </div>
 
-            {/* Comparativo */}
             <div className="bg-white rounded-xl shadow p-4 overflow-x-auto">
               <h2 className="text-xl font-bold mb-4">Comparativo</h2>
               <BarChart
@@ -430,7 +436,23 @@ function Dashboard() {
   const headerTransacoes = (
     <div className="flex justify-between items-center mb-4 gap-2 flex-wrap">
       <h1 className="text-xl font-bold">Suas Transações</h1>
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2 flex-wrap">
+        <Button
+          variant="outlined"
+          color="success"
+          size="small"
+          startIcon={<ShowChartIcon />}
+          onClick={() => navigate('/acoes')}
+          sx={{
+            borderColor: '#4CAF50',
+            color: '#4CAF50',
+            backgroundColor: 'white',
+            '&:hover': { borderColor: '#388E3C', backgroundColor: '#e8f5e9' }
+          }}
+        >
+          Ações
+        </Button>
+
         <Button
           id={buttonId}
           aria-controls={open ? menuId : undefined}
@@ -471,6 +493,17 @@ function Dashboard() {
           size="small"
         >
           + Importar
+        </Button>
+
+        {/* 🟢 3. Botão de Logout adicionado aqui */}
+        <Button
+          variant="outlined"
+          color="error"
+          size="small"
+          onClick={handleLogout}
+          startIcon={<LogoutIcon />}
+        >
+          Sair
         </Button>
       </div>
     </div>
@@ -561,29 +594,18 @@ function Dashboard() {
         </form>
       </ModalPersonalizado>
 
-      {/* =============================================
-          LAYOUT DESKTOP: duas colunas lado a lado
-          (md: e acima)
-      ============================================= */}
       <div className="hidden md:flex h-full w-full">
-        {/* Coluna Esquerda — Transações */}
         <div className="h-full w-1/3 p-4 bg-gray-50 overflow-y-auto scrollbar-thin">
           {headerTransacoes}
           {colunaTransacoes}
         </div>
 
-        {/* Coluna Direita — Gráficos */}
         <div className="h-full w-full overflow-y-auto bg-gray-200">
           {colunaGraficos}
         </div>
       </div>
 
-      {/* =============================================
-          LAYOUT MOBILE: abas na parte inferior
-          (abaixo de md)
-      ============================================= */}
       <div className="flex flex-col h-full md:hidden">
-        {/* Conteúdo da aba ativa */}
         <div className="flex-1 overflow-y-auto">
           {abaAtiva === "transacoes" ? (
             <div className="p-4 bg-gray-50 min-h-full">
@@ -597,7 +619,6 @@ function Dashboard() {
           )}
         </div>
 
-        {/* Barra de abas fixa na parte inferior */}
         <nav className="flex border-t border-gray-200 bg-white shrink-0">
           <button
             onClick={() => setAbaAtiva("transacoes")}
@@ -607,7 +628,6 @@ function Dashboard() {
                 : "text-gray-500"
             }`}
           >
-            {/* Ícone lista */}
             <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 10h16M4 14h16M4 18h16" />
             </svg>
@@ -622,11 +642,20 @@ function Dashboard() {
                 : "text-gray-500"
             }`}
           >
-            {/* Ícone gráfico */}
             <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
             </svg>
             Estatísticas
+          </button>
+
+          <button
+            onClick={() => navigate('/acoes')}
+            className="flex-1 flex flex-col items-center justify-center py-3 gap-0.5 text-xs font-semibold text-gray-500 transition-colors hover:text-green-600"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M3 17l6-6 4 4 8-8m0 0v6m0-6h-6" />
+            </svg>
+            Ações
           </button>
         </nav>
       </div>

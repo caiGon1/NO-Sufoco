@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
-import axios from "axios"; // 🟢 Importação do axios
+import axios from "axios";
+import { useNavigate } from "react-router-dom"; // 🟢 Importação do hook de navegação
 import {
   Box,
   Container,
@@ -15,14 +16,15 @@ import {
   ListItemText,
   Alert,
   Snackbar,
+  IconButton // 🟢 Adicionado para o botão de voltar
 } from "@mui/material";
 import AddCircleOutlineOutlinedIcon from "@mui/icons-material/AddCircleOutlineOutlined";
 import NotificationsActiveIcon from "@mui/icons-material/NotificationsActive";
 import ShowChartIcon from "@mui/icons-material/ShowChart";
+import ArrowBackIosIcon from '@mui/icons-material/ArrowBackIos'; // 🟢 Importação do ícone
 import ModalPersonalizado from '../components/ModalPersonalizado'; 
 import SeletorAtivos from '../components/SeletorAtivos';
 
-// 🟢 Dica: Crie uma instância do axios para facilitar
 const usuario = JSON.parse(localStorage.getItem("usuario") || "{}");
 const token = usuario.token;
 
@@ -31,6 +33,8 @@ const api = axios.create({
 });
 
 export default function Acoes() {
+  const navigate = useNavigate(); // 🟢 Instanciando o hook de navegação
+  
   const [loading, setLoading] = useState(true);
   const [salvando, setSalvando] = useState(false);
   const [acoesData, setAcoesData] = useState({ monitora: false, ativos: {} });
@@ -41,7 +45,6 @@ export default function Acoes() {
   });
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  // Helper para pegar o token
   const getAuthHeader = () => ({
     headers: { Authorization: `Bearer ${token}` },
   });
@@ -52,10 +55,7 @@ export default function Acoes() {
 
   const buscarMeusAtivos = async () => {
     try {
-      // 🟢 Uso do axios.get
       const response = await api.get("/api/acoes/favoritos", getAuthHeader());
-
-      // O axios já retorna o objeto JSON em response.data
       setAcoesData(response.data.acoes || { monitora: false, ativos: {} });
     } catch (error) {
       console.error("Erro ao buscar ativos:", error);
@@ -82,10 +82,9 @@ export default function Acoes() {
     }));
   };
 
-const handleSalvarMonitoramento = async () => {
+  const handleSalvarMonitoramento = async () => {
     setSalvando(true);
     try {
-
       if (!token) throw new Error("Usuário não autenticado");
 
       const payload = {
@@ -107,14 +106,13 @@ const handleSalvarMonitoramento = async () => {
 
   const handleSalvarNovosAtivos = async (lista) => {
     try {
-      // Chamada do POST que criamos no seu backend
       await api.post('/api/acoes/favoritos', { ativosSelecionados: lista }, {
         headers: { Authorization: `Bearer ${token}` }
       });
       
       mostrarToast("Ativos adicionados com sucesso!", "success");
       setIsModalOpen(false);
-      buscarMeusAtivos(); // Atualiza a lista da tela
+      buscarMeusAtivos(); 
     } catch (error) {
       mostrarToast("Erro ao adicionar ativos", "error");
     }
@@ -129,21 +127,30 @@ const handleSalvarMonitoramento = async () => {
 
   return (
     <Container maxWidth="sm" sx={{ py: 4 }}>
-      {/* ... O seu JSX permanece exatamente igual ... */}
-      <Typography
-        variant="h4"
-        fontWeight="bold"
-        gutterBottom
-        color="text.primary"
-      >
-        Meus Ativos
-      </Typography>
+      
+      {/* 🟢 Título com botão de voltar adicionado aqui */}
+      <Box display="flex" alignItems="center" mb={1}>
+        <IconButton 
+          onClick={() => navigate('/dashboard')} 
+          sx={{ mr: 1, ml: -1.5 }} 
+          aria-label="voltar para dashboard"
+        >
+          <ArrowBackIosIcon fontSize="small" />
+        </IconButton>
+        <Typography
+          variant="h4"
+          fontWeight="bold"
+          color="text.primary"
+        >
+          Meus Ativos
+        </Typography>
+      </Box>
+
       <Typography variant="body1" color="text.secondary" mb={4}>
         Acompanhe suas ações e configure os alertas da inteligência artificial.
       </Typography>
 
       {/* ESTADO 1: O usuário NÃO tem ativos cadastrados */}
-
       {!temAtivos && (
         <Card
           variant="outlined"
@@ -156,7 +163,6 @@ const handleSalvarMonitoramento = async () => {
           }}
         >
           <ShowChartIcon sx={{ fontSize: 60, color: "#90c9a8", mb: 2 }} />
-
           <Typography
             variant="h6"
             fontWeight="bold"
@@ -165,19 +171,14 @@ const handleSalvarMonitoramento = async () => {
           >
             Nenhuma ação salva ainda
           </Typography>
-
           <Typography variant="body2" color="text.secondary" mb={3}>
             Você ainda não está monitorando nenhum ativo. Que tal explorar o
             mercado e adicionar algumas ações à sua carteira?
           </Typography>
-
-          {/* Botão sutil, não força a ação */}
-
           <Button
             variant="outlined"
             color="success"
             startIcon={<AddCircleOutlineOutlinedIcon />}
-
             onClick={() => setIsModalOpen(true)}
           >
             Explorar Ativos
@@ -186,15 +187,12 @@ const handleSalvarMonitoramento = async () => {
       )}
 
       {/* ESTADO 2: O usuário TEM ativos cadastrados */}
-
       {temAtivos && (
         <Card
           variant="outlined"
           sx={{ borderRadius: 3, boxShadow: "0 4px 12px rgba(0,0,0,0.05)" }}
         >
           <CardContent sx={{ p: 0 }}>
-            {/* Cabeçalho do Card (Global) */}
-
             <Box
               p={3}
               bgcolor="#f0f7f0"
@@ -210,23 +208,17 @@ const handleSalvarMonitoramento = async () => {
                 >
                   Monitoramento Global
                 </Typography>
-
                 <Typography variant="caption" color="text.secondary">
                   Habilite para receber os alertas diários por e-mail.
                 </Typography>
               </Box>
-
               <Switch
                 checked={acoesData.monitora}
                 onChange={handleToggleGlobal}
                 color="success"
               />
             </Box>
-
             <Divider />
-
-            {/* Lista das Ações */}
-
             <List sx={{ p: 0 }}>
               {listaAtivos.map((ticker, index) => (
                 <React.Fragment key={ticker}>
@@ -237,14 +229,12 @@ const handleSalvarMonitoramento = async () => {
                       }
                       secondary="Analisar diariamente"
                     />
-
                     <Switch
                       checked={acoesData.ativos[ticker]}
                       onChange={() => handleToggleAtivo(ticker)}
                       color="primary"
                     />
                   </ListItem>
-
                   {index !== listaAtivos.length - 1 && (
                     <Divider component="li" />
                   )}
@@ -252,8 +242,6 @@ const handleSalvarMonitoramento = async () => {
               ))}
             </List>
           </CardContent>
-
-          {/* Rodapé com botão de salvar configurações */}
 
           <Box
             p={3}
@@ -267,10 +255,10 @@ const handleSalvarMonitoramento = async () => {
               variant="text"
               color="inherit"
               startIcon={<AddCircleOutlineOutlinedIcon />}
+              onClick={() => setIsModalOpen(true)} // 🟢 Adicionei a função de abrir o modal aqui também, já que o botão não tinha ação!
             >
               Adicionar mais
             </Button>
-
             <Button
               variant="contained"
               color="success"
@@ -297,7 +285,6 @@ const handleSalvarMonitoramento = async () => {
       )}
 
       {/* Feedback em Toast */}
-
       <Snackbar
         open={toast.open}
         autoHideDuration={4000}
