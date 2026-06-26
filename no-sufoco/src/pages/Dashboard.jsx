@@ -438,17 +438,11 @@ function Dashboard() {
       <h1 className="text-xl font-bold">Suas Transações</h1>
       <div className="flex items-center gap-2 flex-wrap">
         <Button
-          variant="outlined"
-          color="success"
-          size="small"
+          variant="contained"
+            size="small"
           startIcon={<ShowChartIcon />}
           onClick={() => navigate('/acoes')}
-          sx={{
-            borderColor: '#4CAF50',
-            color: '#4CAF50',
-            backgroundColor: 'white',
-            '&:hover': { borderColor: '#388E3C', backgroundColor: '#e8f5e9' }
-          }}
+          sx={{ color: "#4CAF50", backgroundColor: "white" }}
         >
           Ações
         </Button>

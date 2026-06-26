@@ -16,17 +16,18 @@ import {
   ListItemText,
   Alert,
   Snackbar,
-  IconButton // 🟢 Adicionado para o botão de voltar
+  IconButton, // 🟢 Adicionado para o botão de voltar
 } from "@mui/material";
 import AddCircleOutlineOutlinedIcon from "@mui/icons-material/AddCircleOutlineOutlined";
 import NotificationsActiveIcon from "@mui/icons-material/NotificationsActive";
 import ShowChartIcon from "@mui/icons-material/ShowChart";
-import ArrowBackIosIcon from '@mui/icons-material/ArrowBackIos'; // 🟢 Importação do ícone
-import ModalPersonalizado from '../components/ModalPersonalizado'; 
-import SeletorAtivos from '../components/SeletorAtivos';
+import ArrowBackIosIcon from "@mui/icons-material/ArrowBackIos"; // 🟢 Importação do ícone
+import ModalPersonalizado from "../components/ModalPersonalizado";
+import SeletorAtivos from "../components/SeletorAtivos";
 
 const usuario = JSON.parse(localStorage.getItem("usuario") || "{}");
 const token = usuario.token;
+
 
 const api = axios.create({
   baseURL: "https://backend-no-sufoco.vercel.app",
@@ -34,7 +35,7 @@ const api = axios.create({
 
 export default function Acoes() {
   const navigate = useNavigate(); // 🟢 Instanciando o hook de navegação
-  
+
   const [loading, setLoading] = useState(true);
   const [salvando, setSalvando] = useState(false);
   const [acoesData, setAcoesData] = useState({ monitora: false, ativos: {} });
@@ -45,9 +46,6 @@ export default function Acoes() {
   });
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  const getAuthHeader = () => ({
-    headers: { Authorization: `Bearer ${token}` },
-  });
 
   useEffect(() => {
     buscarMeusAtivos();
@@ -55,7 +53,9 @@ export default function Acoes() {
 
   const buscarMeusAtivos = async () => {
     try {
-      const response = await api.get("/api/acoes/favoritos", getAuthHeader());
+      const response = await api.get("/api/acoes/favoritos", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
       setAcoesData(response.data.acoes || { monitora: false, ativos: {} });
     } catch (error) {
       console.error("Erro ao buscar ativos:", error);
@@ -92,7 +92,7 @@ export default function Acoes() {
         alteracoesAtivos: acoesData.ativos,
       };
       await api.put("/api/acoes/favoritos", payload, {
-        headers: { Authorization: `Bearer ${token}` }
+        headers: { Authorization: `Bearer ${token}` },
       });
 
       mostrarToast("Preferências de monitoramento salvas!", "success");
@@ -106,13 +106,17 @@ export default function Acoes() {
 
   const handleSalvarNovosAtivos = async (lista) => {
     try {
-      await api.post('/api/acoes/favoritos', { ativosSelecionados: lista }, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      
+      await api.post(
+        "/api/acoes/favoritos",
+        { ativosSelecionados: lista },
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        },
+      );
+
       mostrarToast("Ativos adicionados com sucesso!", "success");
       setIsModalOpen(false);
-      buscarMeusAtivos(); 
+      buscarMeusAtivos();
     } catch (error) {
       mostrarToast("Erro ao adicionar ativos", "error");
     }
@@ -127,21 +131,16 @@ export default function Acoes() {
 
   return (
     <Container maxWidth="sm" sx={{ py: 4 }}>
-      
       {/* 🟢 Título com botão de voltar adicionado aqui */}
       <Box display="flex" alignItems="center" mb={1}>
-        <IconButton 
-          onClick={() => navigate('/dashboard')} 
-          sx={{ mr: 1, ml: -1.5 }} 
+        <IconButton
+          onClick={() => navigate("/dashboard")}
+          sx={{ mr: 1, ml: -1.5 }}
           aria-label="voltar para dashboard"
         >
           <ArrowBackIosIcon fontSize="small" />
         </IconButton>
-        <Typography
-          variant="h4"
-          fontWeight="bold"
-          color="text.primary"
-        >
+        <Typography variant="h4" fontWeight="bold" color="text.primary">
           Meus Ativos
         </Typography>
       </Box>
@@ -299,14 +298,14 @@ export default function Acoes() {
           {toast.message}
         </Alert>
       </Snackbar>
-      <ModalPersonalizado 
-        isOpen={isModalOpen} 
-        onClose={() => setIsModalOpen(false)} 
+      <ModalPersonalizado
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
         titulo="Adicionar Ativos"
       >
-        <SeletorAtivos 
-          onSalvar={handleSalvarNovosAtivos} 
-          onClose={() => setIsModalOpen(false)} 
+        <SeletorAtivos
+          onSalvar={handleSalvarNovosAtivos}
+          onClose={() => setIsModalOpen(false)}
         />
       </ModalPersonalizado>
     </Container>
