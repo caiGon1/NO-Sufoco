@@ -16,12 +16,12 @@ import {
   ListItemText,
   Alert,
   Snackbar,
-  IconButton, // 🟢 Adicionado para o botão de voltar
+  IconButton, 
 } from "@mui/material";
 import AddCircleOutlineOutlinedIcon from "@mui/icons-material/AddCircleOutlineOutlined";
 import NotificationsActiveIcon from "@mui/icons-material/NotificationsActive";
 import ShowChartIcon from "@mui/icons-material/ShowChart";
-import ArrowBackIosIcon from "@mui/icons-material/ArrowBackIos"; // 🟢 Importação do ícone
+import ArrowBackIosIcon from "@mui/icons-material/ArrowBackIos";
 import ModalPersonalizado from "../components/ModalPersonalizado";
 import SeletorAtivos from "../components/SeletorAtivos";
 
@@ -34,8 +34,8 @@ const api = axios.create({
 });
 
 export default function Acoes() {
-  const navigate = useNavigate(); // 🟢 Instanciando o hook de navegação
-
+  const navigate = useNavigate(); 
+  
   const [loading, setLoading] = useState(true);
   const [salvando, setSalvando] = useState(false);
   const [acoesData, setAcoesData] = useState({ monitora: false, ativos: {} });
@@ -48,10 +48,7 @@ export default function Acoes() {
 
 
   useEffect(() => {
-    buscarMeusAtivos();
-  }, []);
-
-  const buscarMeusAtivos = async () => {
+    const buscarMeusAtivos = async () => {
     try {
       const response = await api.get("/api/acoes/favoritos", {
         headers: { Authorization: `Bearer ${token}` },
@@ -63,7 +60,11 @@ export default function Acoes() {
     } finally {
       setLoading(false);
     }
-  };
+    };
+    buscarMeusAtivos();
+  }, []);
+
+  
 
   const handleToggleAtivo = (ticker) => {
     setAcoesData((prev) => ({

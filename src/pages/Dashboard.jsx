@@ -9,6 +9,7 @@ import ModalPersonalizado from "../components/ModalPersonalizado";
 import { Button, Menu, MenuItem } from "@mui/material";
 import ShowChartIcon from '@mui/icons-material/ShowChart';
 import LogoutIcon from '@mui/icons-material/Logout'; // 🟢 1. Importação do ícone de Sair
+import Chat from '../components/Chat';
 
 // ==========================================
 // FUNÇÃO DE PROJEÇÃO DE PARCELAS FUTURAS
@@ -653,6 +654,7 @@ function Dashboard() {
           </button>
         </nav>
       </div>
+      <Chat />
     </div>
   );
 }
