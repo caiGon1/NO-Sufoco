@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
-import { useNavigate } from "react-router-dom"; // 🟢 Importação do hook de navegação
+import { useNavigate } from "react-router-dom"; 
 import {
   Box,
   Container,
@@ -132,7 +132,6 @@ export default function Acoes() {
 
   return (
     <Container maxWidth="sm" sx={{ py: 4 }}>
-      {/* 🟢 Título com botão de voltar adicionado aqui */}
       <Box display="flex" alignItems="center" mb={1}>
         <IconButton
           onClick={() => navigate("/dashboard")}
@@ -150,7 +149,6 @@ export default function Acoes() {
         Acompanhe suas ações e configure os alertas da inteligência artificial.
       </Typography>
 
-      {/* ESTADO 1: O usuário NÃO tem ativos cadastrados */}
       {!temAtivos && (
         <Card
           variant="outlined"
@@ -186,7 +184,6 @@ export default function Acoes() {
         </Card>
       )}
 
-      {/* ESTADO 2: O usuário TEM ativos cadastrados */}
       {temAtivos && (
         <Card
           variant="outlined"
@@ -255,7 +252,7 @@ export default function Acoes() {
               variant="text"
               color="inherit"
               startIcon={<AddCircleOutlineOutlinedIcon />}
-              onClick={() => setIsModalOpen(true)} // 🟢 Adicionei a função de abrir o modal aqui também, já que o botão não tinha ação!
+              onClick={() => setIsModalOpen(true)}
             >
               Adicionar mais
             </Button>
@@ -284,7 +281,6 @@ export default function Acoes() {
         </Card>
       )}
 
-      {/* Feedback em Toast */}
       <Snackbar
         open={toast.open}
         autoHideDuration={4000}

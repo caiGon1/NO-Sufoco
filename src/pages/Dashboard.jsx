@@ -8,7 +8,7 @@ import { LineChart } from "@mui/x-charts";
 import ModalPersonalizado from "../components/ModalPersonalizado";
 import { Button, Menu, MenuItem } from "@mui/material";
 import ShowChartIcon from '@mui/icons-material/ShowChart';
-import LogoutIcon from '@mui/icons-material/Logout'; // 🟢 1. Importação do ícone de Sair
+import LogoutIcon from '@mui/icons-material/Logout'; 
 import Chat from '../components/Chat';
 
 // ==========================================
@@ -98,7 +98,6 @@ function Dashboard() {
   const [parcelas, setParcelas] = useState([]);
   const [modalUploadAberto, setModalUploadAberto] = useState(false);
 
-  // ESTADO DA ABA ATIVA NO MOBILE
   const [abaAtiva, setAbaAtiva] = useState("transacoes");
 
   const [mesSelecionado, setMesSelecionado] = useState("");
@@ -123,10 +122,9 @@ function Dashboard() {
     setAnchorEl(null);
   };
 
-  // 🟢 2. Função de Logout criada aqui
   const handleLogout = () => {
-    localStorage.clear(); // Limpa todo o LocalStorage (token, dados do usuário, etc)
-    navigate('/'); // Ajuste para a rota de login correta se a sua for diferente (ex: '/login')
+    localStorage.clear(); 
+    navigate('/');
   };
 
   const projecaoFutura = useMemo(() => {
@@ -286,7 +284,7 @@ function Dashboard() {
   }, [usuarioId]);
 
   // ==========================================
-  // COLUNA DE TRANSAÇÕES (reutilizada em desktop e mobile)
+  // COLUNA DE TRANSAÇÕES 
   // ==========================================
   const colunaTransacoes = (
     <div className="flex flex-col gap-2">
@@ -363,7 +361,7 @@ function Dashboard() {
   );
 
   // ==========================================
-  // COLUNA DE GRÁFICOS (reutilizada em desktop e mobile)
+  // COLUNA DE GRÁFICOS 
   // ==========================================
   const colunaGraficos = (
     <div className="w-full bg-gray-100 p-4">
@@ -432,7 +430,7 @@ function Dashboard() {
   );
 
   // ==========================================
-  // HEADER DE TRANSAÇÕES (reutilizado)
+  // HEADER DE TRANSAÇÕES
   // ==========================================
   const headerTransacoes = (
     <div className="flex justify-between items-center mb-4 gap-2 flex-wrap">
@@ -490,8 +488,7 @@ function Dashboard() {
           + Importar
         </Button>
 
-        {/* 🟢 3. Botão de Logout adicionado aqui */}
-        <Button
+           <Button
           variant="outlined"
           color="error"
           size="small"

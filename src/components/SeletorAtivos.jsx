@@ -8,10 +8,8 @@ export default function SeletorAtivos({ onSalvar, onClose }) {
   const [carregando, setCarregando] = useState(true);
 
   useEffect(() => {
-    // Busca Top ativos (ajuste a URL conforme sua necessidade ou lista estática)
     axios.get('https://brapi.dev/api/quote/list') 
       .then(res => {
-        // Filtra para pegar apenas os primeiros 50
         setAtivosDisponiveis(res.data.stocks.slice(0, 50));
         setCarregando(false);
       });

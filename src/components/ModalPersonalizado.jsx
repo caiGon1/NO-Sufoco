@@ -18,7 +18,6 @@ function ModalPersonalizado({ isOpen, onClose, titulo, children, tamanho = "md" 
       onClose={onClose}
       aria-labelledby="modal-title"
       closeAfterTransition
-      // Customização do fundo escurecido (backdrop) com Tailwind
       slotProps={{
         backdrop: {
           className: "bg-black/40 backdrop-blur-sm transition-opacity duration-300",
@@ -29,13 +28,11 @@ function ModalPersonalizado({ isOpen, onClose, titulo, children, tamanho = "md" 
       <Box
         className={`w-full ${larguras[tamanho]} bg-white rounded-2xl shadow-xl border border-gray-100 p-6 relative focus:outline-none transform transition-all duration-300`}
       >
-        {/* Cabeçalho do Modal */}
         <div className="flex items-center justify-between mb-4 pb-2 border-b border-gray-100">
           <h2 id="modal-title" className="text-lg font-bold text-gray-800">
             {titulo}
           </h2>
           
-          {/* Botão de Fechar do MUI */}
           <IconButton 
             onClick={onClose} 
             size="small"
@@ -44,9 +41,7 @@ function ModalPersonalizado({ isOpen, onClose, titulo, children, tamanho = "md" 
             <CloseIcon fontSize="small" />
           </IconButton>
         </div>
-
-        {/* Corpo Dinâmico (Conteúdo injetado) */}
-        <div className="text-sm text-gray-600">
+       <div className="text-sm text-gray-600">
           {children}
         </div>
       </Box>
