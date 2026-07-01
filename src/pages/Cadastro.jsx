@@ -10,6 +10,7 @@ import FormControl from "@mui/material/FormControl";
 import TextField from "@mui/material/TextField";
 import Button from "@mui/material/Button";
 import { useNavigate } from "react-router-dom";
+import CircularProgress from '@mui/material/CircularProgress';
 
 import Visibility from "@mui/icons-material/Visibility";
 import VisibilityOff from "@mui/icons-material/VisibilityOff";
@@ -20,6 +21,7 @@ function Cadastro() {
   const [senha, setSenha] = useState("");
   const [nome, setNome] = useState("");
   const [banco, setBanco] = useState("");
+  const [loading, setLoading] = useState(false);
 
   const [showPassword, setShowPassword] = React.useState(false);
 
@@ -38,6 +40,7 @@ function Cadastro() {
   };
 
   const handleSubmit = async (e) => {
+    setLoading(true);
     e.preventDefault();
 
     const dadosEnvio = {
@@ -57,6 +60,8 @@ function Cadastro() {
       navigate("/");
     } catch (error) {
       console.error("Erro ao enviar: ", error);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -114,7 +119,7 @@ function Cadastro() {
               variant="outlined"
             />
             <Button type="submit" variant="outlined" color="black">
-              Enviar
+              {loading ? <CircularProgress size={24} color="success" /> : "Cadastrar"}
             </Button>
           </div>
         </form>

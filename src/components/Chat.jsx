@@ -10,11 +10,9 @@ import CloseIcon from '@mui/icons-material/Close';
 import { ChatBox } from '@mui/x-chat';
 
 
-// 1. Definição do Adapter que bate na sua API Serverless (/api/ia)
-// 1. Definição do Adapter que bate na sua API Serverless (/api/ia)
+
 const adapter = {
   async sendMessage({ message, messages, signal }) {
-    // Enviamos o array 'messages' completo para o backend ter o contexto
     const response = await fetch('https://backend-no-sufoco.vercel.app/api/ia/chat', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },

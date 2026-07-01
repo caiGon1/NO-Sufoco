@@ -10,6 +10,7 @@ import FormControl from "@mui/material/FormControl";
 import TextField from "@mui/material/TextField";
 import Button from "@mui/material/Button";
 import { useNavigate } from "react-router-dom";
+import CircularProgress from '@mui/material/CircularProgress';
 
 import Visibility from "@mui/icons-material/Visibility";
 import VisibilityOff from "@mui/icons-material/VisibilityOff";
@@ -18,6 +19,7 @@ function Login() {
   const outlinedPasswordId = React.useId();
   const [email, setEmail] = useState("");
   const [senha, setSenha] = useState("");
+  const [loading, setLoading] = useState(false);
 
   const [showPassword, setShowPassword] = React.useState(false);
 
@@ -36,6 +38,7 @@ function Login() {
   };
 
   const handleSubmit = async (e) => {
+    setLoading(true);
     e.preventDefault();
 
     const dadosEnvio = {
@@ -61,6 +64,8 @@ function Login() {
       navigate('/dashboard')
     } catch (error) {
       console.error("Erro ao enviar: ", error);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -108,7 +113,7 @@ function Login() {
             />
           </FormControl>
           <Button type="submit" variant="outlined" color="black">
-            Enviar
+            {loading ? <CircularProgress size={24} color="success" /> : "Enviar"}
           </Button>
         </div>
       </form>
