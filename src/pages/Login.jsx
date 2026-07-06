@@ -71,7 +71,7 @@ function Login() {
 
   return (
    <div 
-  className="h-screen w-screen flex flex-col items-center justify-center bg-bottom bg-no-repeat gap-20"
+  className="h-screen w-screen flex flex-col items-center justify-center bg-bottom bg-no-repeat gap-10"
   style={{ 
     backgroundImage: "url('/Ellipse1.svg')", 
     backgroundSize: "100% 65%" 
