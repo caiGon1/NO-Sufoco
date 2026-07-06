@@ -70,7 +70,7 @@ function Login() {
   };
 
   return (
-    <div className="h-screen w-screen flex flex-col items-center justify-center bg-[url('public/Ellipse1.svg')] bg-bottom bg-no-repeat bg-size-[100%_65%] gap-20">
+    <div className="h-screen w-screen flex flex-col items-center justify-center bg-[url('Ellipse1.svg')] bg-bottom bg-no-repeat bg-size-[100%_65%] gap-20">
       <h1 className="font-poppins text-[100px] -mt-40"><span className="font-bold">NO </span><span className="font-light">Sufoco</span></h1>
       <div className="flex flex-col justify-center gap-5 bg-white p-10 rounded-b-[10%]">
     <p className="font-poppins text-center">Bem-vindo(a) de volta!</p>
