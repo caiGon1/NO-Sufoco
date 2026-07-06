@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
-import { useNavigate } from "react-router-dom"; 
+import { useNavigate } from "react-router-dom";
 import {
   Box,
   Container,
@@ -16,7 +16,7 @@ import {
   ListItemText,
   Alert,
   Snackbar,
-  IconButton, 
+  IconButton,
 } from "@mui/material";
 import AddCircleOutlineOutlinedIcon from "@mui/icons-material/AddCircleOutlineOutlined";
 import NotificationsActiveIcon from "@mui/icons-material/NotificationsActive";
@@ -24,18 +24,18 @@ import ShowChartIcon from "@mui/icons-material/ShowChart";
 import ArrowBackIosIcon from "@mui/icons-material/ArrowBackIos";
 import ModalPersonalizado from "../components/ModalPersonalizado";
 import SeletorAtivos from "../components/SeletorAtivos";
+import { motion } from "framer-motion";
 
 const usuario = JSON.parse(localStorage.getItem("usuario") || "{}");
 const token = usuario.token;
-
 
 const api = axios.create({
   baseURL: "https://backend-no-sufoco.vercel.app",
 });
 
 export default function Acoes() {
-  const navigate = useNavigate(); 
-  
+  const navigate = useNavigate();
+
   const [loading, setLoading] = useState(true);
   const [salvando, setSalvando] = useState(false);
   const [acoesData, setAcoesData] = useState({ monitora: false, ativos: {} });
@@ -46,25 +46,22 @@ export default function Acoes() {
   });
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-
   useEffect(() => {
     const buscarMeusAtivos = async () => {
-    try {
-      const response = await api.get("/api/acoes/favoritos", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      setAcoesData(response.data.acoes || { monitora: false, ativos: {} });
-    } catch (error) {
-      console.error("Erro ao buscar ativos:", error);
-      mostrarToast("Erro ao carregar seus ativos.", "error");
-    } finally {
-      setLoading(false);
-    }
+      try {
+        const response = await api.get("/api/acoes/favoritos", {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        setAcoesData(response.data.acoes || { monitora: false, ativos: {} });
+      } catch (error) {
+        console.error("Erro ao buscar ativos:", error);
+        mostrarToast("Erro ao carregar seus ativos.", "error");
+      } finally {
+        setLoading(false);
+      }
     };
     buscarMeusAtivos();
   }, []);
-
-  
 
   const handleToggleAtivo = (ticker) => {
     setAcoesData((prev) => ({
@@ -130,7 +127,7 @@ export default function Acoes() {
   const listaAtivos = Object.keys(acoesData.ativos || {});
   const temAtivos = listaAtivos.length > 0;
 
-  return (
+  const acoes = (
     <Container maxWidth="sm" sx={{ py: 4 }}>
       <Box display="flex" alignItems="center" mb={1}>
         <IconButton
@@ -306,5 +303,16 @@ export default function Acoes() {
         />
       </ModalPersonalizado>
     </Container>
+  );
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, x: 0 }}
+      animate={{ opacity: 1, x: 0 }}
+      exit={{ opacity: 0, x: 0 }}
+      transition={{ duration: 0.4 }}
+    >
+      {acoes}
+    </motion.div>
   );
 }

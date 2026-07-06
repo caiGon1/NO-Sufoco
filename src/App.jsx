@@ -2,18 +2,28 @@ import Cadastro from "./pages/Cadastro";
 import Dashboard from "./pages/Dashboard";
 import Login from "./pages/Login";
 import Acoes from "./pages/Acoes";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
+import { AnimatePresence } from "framer-motion";
+
+function AnimatedRoutes() {
+  const location = useLocation();
+  return (
+    <AnimatePresence mode="wait">
+      <Routes location={location} key={location.pathname}>
+        <Route path="/" element={<Login />} />
+        <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/cadastro" element={<Cadastro />} />
+        <Route path="/acoes" element={<Acoes />} />
+      </Routes>
+    </AnimatePresence>
+  );
+}
 
 function App() {
   return (
     <>
       <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Login />} />
-          <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/cadastro" element={<Cadastro />}></Route>
-          <Route path="/acoes" element={<Acoes />} />
-        </Routes>
+        <AnimatedRoutes />
       </BrowserRouter>
     </>
   );

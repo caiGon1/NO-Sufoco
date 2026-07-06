@@ -19,6 +19,7 @@
     "@mui/x-chat": "^9.0.0-alpha.11",
     "@tailwindcss/vite": "^4.3.0",
     "axios": "^1.16.1",
+    "framer-motion": "^12.42.2",
     "react": "^19.2.6",
     "react-dom": "^19.2.6",
     "react-router-dom": "^7.15.1",

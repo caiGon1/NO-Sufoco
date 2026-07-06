@@ -11,6 +11,7 @@ import TextField from "@mui/material/TextField";
 import Button from "@mui/material/Button";
 import { useNavigate } from "react-router-dom";
 import CircularProgress from '@mui/material/CircularProgress';
+import { motion } from "framer-motion";
 
 import Visibility from "@mui/icons-material/Visibility";
 import VisibilityOff from "@mui/icons-material/VisibilityOff";
@@ -65,8 +66,7 @@ function Cadastro() {
     }
   };
 
-  return (
-    <div className="h-screen w-screen flex items-center justify-center">
+const cadastro = (  <div className="h-screen w-screen flex items-center justify-center">
       <div className="flex flex-col justify-center gap-5">
         <h1>Bora sair do sufoco?</h1>
         <form onSubmit={handleSubmit}>
@@ -124,7 +124,17 @@ function Cadastro() {
           </div>
         </form>
       </div>
-    </div>
+    </div>)
+
+  return (
+      <motion.div
+      initial={{ opacity: 0, x: 0 }}
+      animate={{ opacity: 1, x: 0 }}
+      exit={{ opacity: 0, x: 0 }}
+      transition={{ duration: 0.4 }}
+    >
+      {cadastro}
+    </motion.div>
   );
 }
 

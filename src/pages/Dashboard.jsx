@@ -10,6 +10,7 @@ import { Button, Menu, MenuItem } from "@mui/material";
 import ShowChartIcon from "@mui/icons-material/ShowChart";
 import LogoutIcon from "@mui/icons-material/Logout";
 import Chat from "../components/Chat";
+import { motion } from "framer-motion";
 
 // ==========================================
 // FUNÇÃO DE PROJEÇÃO DE PARCELAS FUTURAS
@@ -537,7 +538,7 @@ function Dashboard() {
     </div>
   );
 
-  return (
+  const dashboardUser = (
     <div className="h-screen w-screen flex flex-col">
       <ModalPersonalizado
         onClose={() => transacoes.length > 0 && setModalUploadAberto(false)}
@@ -720,6 +721,17 @@ function Dashboard() {
       </div>
       <Chat />
     </div>
+  );
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, x: 0 }}
+      animate={{ opacity: 1, x: 0 }}
+      exit={{ opacity: 0, x: 0 }}
+      transition={{ duration: 0.4 }}
+    >
+      {dashboardUser}
+    </motion.div>
   );
 }
 
