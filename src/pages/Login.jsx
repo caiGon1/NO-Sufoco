@@ -70,9 +70,10 @@ function Login() {
   };
 
   return (
-    <div className="h-screen w-screen flex items-center justify-center">
-      <div className="flex flex-col justify-center gap-5">
-    <a href="/cadastro">Não é cadastrado ainda? Registre-se!</a>
+    <div className="h-screen w-screen flex flex-col items-center justify-center bg-[url('public/Ellipse1.svg')] bg-bottom bg-no-repeat bg-size-[100%_65%] gap-20">
+      <h1 className="font-poppins text-[100px] -mt-40"><span className="font-bold">NO </span><span className="font-light">Sufoco</span></h1>
+      <div className="flex flex-col justify-center gap-5 bg-white p-10 rounded-b-[10%]">
+    <p className="font-poppins text-center">Bem-vindo(a) de volta!</p>
       <form onSubmit={handleSubmit}>
           
         <div className="grid gap-3">
@@ -111,14 +112,19 @@ function Login() {
                 </InputAdornment>
               }
             />
-          </FormControl>
-          <Button type="submit" variant="outlined" color="black">
-            {loading ? <CircularProgress size={24} color="success" /> : "Enviar"}
+            </FormControl>
+            <div className="grid p-1 gap-3">
+          <Button className="w-fit justify-self-center" type="submit" variant="outlined" color="black">
+            {loading ? <CircularProgress size={24} color="success" /> : "Login"}
+            </Button>
+                <Button className="w-fit justify-self-center" onClick={() => navigate('/cadastro')} variant="outlined" color="black">
+              Cadastre-se
           </Button>
+          </div>
         </div>
       </form>
       </div>
-    </div>
+        </div>
   );
 }
 
