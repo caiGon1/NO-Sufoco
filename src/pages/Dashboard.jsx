@@ -178,7 +178,7 @@ function Dashboard() {
       };
 
       await axios.post(
-        `https://backend-no-sufoco.vercel.app/api/ia/${usuarioId}`, // Ajuste a URL da sua rota de preferências
+        `https://backend-no-sufoco.vercel.app/api/ia/preferencias/${usuarioId}`, // Ajuste a URL da sua rota de preferências
         payload,
         {
           headers: {
