@@ -125,6 +125,19 @@ function Dashboard() {
   const debitos = transacoes.filter((item) => item.tipo === "debito");
   const graficoP = debitos.reduce((soma, item) => soma + item.valor, 0);
 
+  const CATEGORIAS_DISPONIVEIS = [
+    "alimentacao",
+    "compras",
+    "investimento",
+    "transferencia",
+    "salario",
+    "transporte",
+    "lazer",
+    "saude",
+    "contas",
+    "outros",
+  ];
+
   const id = React.useId();
   const buttonId = `${id}-button`;
   const menuId = `${id}-menu`;
@@ -140,6 +153,44 @@ function Dashboard() {
   const handleLogout = () => {
     localStorage.clear();
     navigate("/");
+  };
+
+  const handleAlterarCategoria = async (transacao, novaCategoria) => {
+    if (transacao.categoria === novaCategoria) return; // Não faz nada se for a mesma
+
+    // 1. Atualização Otimista no Estado Local (A UI responde instantaneamente)
+    setTransacoes((prevTransacoes) =>
+      prevTransacoes.map((t) =>
+        t.uuid === transacao.uuid ? { ...t, categoria: novaCategoria } : t,
+      ),
+    );
+
+    try {
+      // 2. Envio em lote (mesmo sendo 1 item) no formato esperado pela API
+      const payload = {
+        alteracoes: [
+          {
+            uuid: transacao.uuid,
+            nome: transacao.descricao,
+            categoria: novaCategoria,
+          },
+        ],
+      };
+
+      await axios.post(
+        `https://backend-no-sufoco.vercel.app/api/ia/${usuarioId}`, // Ajuste a URL da sua rota de preferências
+        payload,
+        {
+          headers: {
+            Authorization: `Bearer ${usuario.token}`,
+          },
+        },
+      );
+    } catch (error) {
+      console.error("Erro ao atualizar categoria:", error);
+      alert("Não foi possível salvar a alteração de categoria.");
+      // Em caso de erro, você pode reverter o estado se desejar
+    }
   };
 
   const projecaoFutura = useMemo(() => {
@@ -300,7 +351,7 @@ function Dashboard() {
     buscarUsuario();
   }, [usuarioId]);
 
-  // ==========================================
+// ==========================================
   // COLUNA DE TRANSAÇÕES
   // ==========================================
   const colunaTransacoes = (
@@ -326,9 +377,20 @@ function Dashboard() {
               <div>
                 <p className="font-semibold text-gray-800">{t.descricao}</p>
                 <div className="flex flex-wrap gap-2 text-xs text-gray-500 mt-1 items-center">
-                  <span className="bg-gray-100 px-2 py-0.5 rounded">
-                    {t.categoria}
-                  </span>
+                  
+                  {/* CORRIGIDO AQUI: Mudei 'transacao' para 't' */}
+                  <select
+                    value={t.categoria || "outros"}
+                    onChange={(e) => handleAlterarCategoria(t, e.target.value)}
+                    className="bg-gray-100 border border-gray-300 hover:bg-gray-200 text-gray-700 text-xs px-2 py-0.5 rounded cursor-pointer focus:ring-2 focus:ring-green-500 transition-colors"
+                  >
+                    {CATEGORIAS_DISPONIVEIS.map((cat) => (
+                      <option key={cat} value={cat}>
+                        {cat}
+                      </option>
+                    ))}
+                  </select>
+
                   <span className="bg-orange-100 text-orange-800 px-2 py-0.5 rounded font-bold">
                     Parcela {t.parcelaNumero}
                   </span>
@@ -350,17 +412,28 @@ function Dashboard() {
       ) : transacoes && transacoes.length > 0 ? (
         transacoes.map((transacao, index) => (
           <div
-            key={index}
+            key={transacao.uuid || index}
             className="p-3 border rounded shadow-sm bg-white flex justify-between items-center"
           >
             <div className="min-w-0 mr-2">
               <p className="font-semibold text-gray-800 truncate">
                 {transacao.descricao}
               </p>
-              <div className="flex flex-wrap gap-2 text-xs text-gray-500 mt-1">
-                <span className="bg-gray-100 px-2 py-0.5 rounded">
-                  {transacao.categoria}
-                </span>
+              <div className="flex flex-wrap gap-2 text-xs text-gray-500 mt-1 items-center">
+                
+                {/* CORRIGIDO AQUI: Removido o <span> e colocado o <select> na lista principal */}
+                <select
+                  value={transacao.categoria || "outros"}
+                  onChange={(e) => handleAlterarCategoria(transacao, e.target.value)}
+                  className="bg-gray-100 border border-gray-300 hover:bg-gray-200 text-gray-700 text-xs px-2 py-0.5 rounded cursor-pointer focus:ring-2 focus:ring-green-500 transition-colors"
+                >
+                  {CATEGORIAS_DISPONIVEIS.map((cat) => (
+                    <option key={cat} value={cat}>
+                      {cat}
+                    </option>
+                  ))}
+                </select>
+
                 <span>{transacao.data}</span>
               </div>
             </div>
