@@ -122,8 +122,6 @@ function Dashboard() {
   const [senha, setSenha] = useState("");
   const [carregando, setCarregando] = useState(false);
 
-  const debitos = transacoes.filter((item) => item.tipo === "debito");
-  const graficoP = debitos.reduce((soma, item) => soma + item.valor, 0);
 
   const CATEGORIAS_DISPONIVEIS = [
     "alimentacao",
@@ -197,7 +195,67 @@ function Dashboard() {
     return calcularProjecaoNoFrontend(transacoes);
   }, [transacoes]);
 
-  const mesesProjetados = Object.keys(projecaoFutura);
+  const normalizarChavePeriodo = (periodo) => {
+    if (!periodo) return "";
+    const partes = periodo.split("/");
+    if (partes.length !== 2) return periodo;
+    return `${Number(partes[0])}/${Number(partes[1])}`;
+  };
+
+  // Junta os meses reais (extrato) com os meses futuros (projeção) sem repetir
+  const todosOsPeriodos = useMemo(() => {
+    const periodosSet = new Set();
+
+    transacoes.forEach((t) => {
+      if (t.periodoFatura)
+        periodosSet.add(normalizarChavePeriodo(t.periodoFatura));
+    });
+
+    Object.keys(projecaoFutura).forEach((p) =>
+      periodosSet.add(normalizarChavePeriodo(p)),
+    );
+
+    return Array.from(periodosSet).sort((a, b) => {
+      const [mesA, anoA] = a.split("/").map(Number);
+      const [mesB, anoB] = b.split("/").map(Number);
+      return anoA !== anoB ? anoA - anoB : mesA - mesB;
+    });
+  }, [transacoes, projecaoFutura]);
+
+  // A lista oficial que será renderizada (filtrada ou completa)
+  const transacoesFiltradas = useMemo(() => {
+    if (!mesSelecionado) return transacoes;
+
+    const chaveSelecionada = normalizarChavePeriodo(mesSelecionado);
+    return transacoes.filter(
+      (t) => normalizarChavePeriodo(t.periodoFatura) === chaveSelecionada,
+    );
+  }, [transacoes, mesSelecionado]);
+
+  // O texto inteligente que aparece no botão do Menu
+  const rotuloBotaoPeriodo = useMemo(() => {
+    if (!mesSelecionado) return "Todos os Períodos";
+    const [m, a] = normalizarChavePeriodo(mesSelecionado).split("/");
+    const nomesMeses = [
+      "Janeiro",
+      "Fevereiro",
+      "Março",
+      "Abril",
+      "Maio",
+      "Junho",
+      "Julho",
+      "Agosto",
+      "Setembro",
+      "Outubro",
+      "Novembro",
+      "Dezembro",
+    ];
+    return `${nomesMeses[Number(m) - 1]} / ${a}`;
+  }, [mesSelecionado]);
+
+  // Agora o gráfico de pizza mudará dependendo do mês escolhido!
+  const debitos = transacoesFiltradas.filter((item) => item.tipo === "debito");
+  const graficoP = debitos.reduce((soma, item) => soma + item.valor, 0);
 
   const data = Object.values(
     debitos.reduce((acc, item) => {
@@ -351,25 +409,34 @@ function Dashboard() {
     buscarUsuario();
   }, [usuarioId]);
 
-// ==========================================
+  // ==========================================
   // COLUNA DE TRANSAÇÕES
   // ==========================================
+  // ==========================================
+  // COLUNA DE TRANSAÇÕES
+  // ==========================================
+  const chaveSelecionadaNorm = normalizarChavePeriodo(mesSelecionado);
+  const exibirApenasProjecao =
+    mesSelecionado &&
+    transacoesFiltradas.length === 0 &&
+    projecaoFutura[chaveSelecionadaNorm];
+
   const colunaTransacoes = (
     <div className="flex flex-col gap-2">
-      {mesSelecionado && projecaoFutura[mesSelecionado] ? (
+      {exibirApenasProjecao ? (
         <>
           <div className="bg-orange-50 border border-orange-200 p-4 rounded shadow-sm mb-2">
             <p className="text-orange-800 font-bold text-lg">
               Total Projetado: R${" "}
-              {projecaoFutura[mesSelecionado].totalMes.toFixed(2)}
+              {projecaoFutura[chaveSelecionadaNorm].totalMes.toFixed(2)}
             </p>
             <p className="text-sm text-orange-600">
-              {projecaoFutura[mesSelecionado].transacoes.length} parcelas para
-              vencer neste mês.
+              {projecaoFutura[chaveSelecionadaNorm].transacoes.length} parcelas
+              para vencer neste mês.
             </p>
           </div>
 
-          {projecaoFutura[mesSelecionado].transacoes.map((t, index) => (
+          {projecaoFutura[chaveSelecionadaNorm].transacoes.map((t, index) => (
             <div
               key={index}
               className="p-3 border rounded shadow-sm bg-white flex justify-between items-center"
@@ -377,8 +444,6 @@ function Dashboard() {
               <div>
                 <p className="font-semibold text-gray-800">{t.descricao}</p>
                 <div className="flex flex-wrap gap-2 text-xs text-gray-500 mt-1 items-center">
-                  
-                  {/* CORRIGIDO AQUI: Mudei 'transacao' para 't' */}
                   <select
                     value={t.categoria || "outros"}
                     onChange={(e) => handleAlterarCategoria(t, e.target.value)}
@@ -390,7 +455,6 @@ function Dashboard() {
                       </option>
                     ))}
                   </select>
-
                   <span className="bg-orange-100 text-orange-800 px-2 py-0.5 rounded font-bold">
                     Parcela {t.parcelaNumero}
                   </span>
@@ -409,8 +473,8 @@ function Dashboard() {
             </div>
           ))}
         </>
-      ) : transacoes && transacoes.length > 0 ? (
-        transacoes.map((transacao, index) => (
+      ) : transacoesFiltradas.length > 0 ? (
+        transacoesFiltradas.map((transacao, index) => (
           <div
             key={transacao.uuid || index}
             className="p-3 border rounded shadow-sm bg-white flex justify-between items-center"
@@ -420,11 +484,11 @@ function Dashboard() {
                 {transacao.descricao}
               </p>
               <div className="flex flex-wrap gap-2 text-xs text-gray-500 mt-1 items-center">
-                
-                {/* CORRIGIDO AQUI: Removido o <span> e colocado o <select> na lista principal */}
                 <select
                   value={transacao.categoria || "outros"}
-                  onChange={(e) => handleAlterarCategoria(transacao, e.target.value)}
+                  onChange={(e) =>
+                    handleAlterarCategoria(transacao, e.target.value)
+                  }
                   className="bg-gray-100 border border-gray-300 hover:bg-gray-200 text-gray-700 text-xs px-2 py-0.5 rounded cursor-pointer focus:ring-2 focus:ring-green-500 transition-colors"
                 >
                   {CATEGORIAS_DISPONIVEIS.map((cat) => (
@@ -433,11 +497,9 @@ function Dashboard() {
                     </option>
                   ))}
                 </select>
-
                 <span>{transacao.data}</span>
               </div>
             </div>
-
             <div className="text-right shrink-0">
               <p
                 className={`font-bold ${transacao.tipo === "debito" ? "text-red-500" : "text-green-500"}`}
@@ -457,7 +519,9 @@ function Dashboard() {
           </div>
         ))
       ) : (
-        <p className="text-gray-500">Nenhuma transação encontrada.</p>
+        <p className="text-gray-500">
+          Nenhuma transação encontrada para este período.
+        </p>
       )}
     </div>
   );
@@ -547,7 +611,6 @@ function Dashboard() {
         >
           Ações
         </Button>
-
         <Button
           id={buttonId}
           aria-controls={open ? menuId : undefined}
@@ -558,16 +621,15 @@ function Dashboard() {
           variant="contained"
           size="small"
         >
-          {mesSelecionado ? projecaoFutura[mesSelecionado].rotulo : "Mês Atual"}
+          {rotuloBotaoPeriodo}
         </Button>
+
         <Menu
           id={menuId}
           anchorEl={anchorEl}
           open={open}
           onClose={handleClose}
-          slotProps={{
-            list: { "aria-labelledby": buttonId },
-          }}
+          slotProps={{ list: { "aria-labelledby": buttonId } }}
         >
           <MenuItem
             onClick={() => {
@@ -575,19 +637,37 @@ function Dashboard() {
               handleClose();
             }}
           >
-            Mês Atual / Todas
+            Todos os Períodos / Visão Geral
           </MenuItem>
-          {mesesProjetados.map((chave) => (
-            <MenuItem
-              key={chave}
-              onClick={() => {
-                setMesSelecionado(chave);
-                handleClose();
-              }}
-            >
-              {projecaoFutura[chave].rotulo}
-            </MenuItem>
-          ))}
+          {todosOsPeriodos.map((chave) => {
+            const [m, a] = chave.split("/");
+            const nomesMeses = [
+              "Janeiro",
+              "Fevereiro",
+              "Março",
+              "Abril",
+              "Maio",
+              "Junho",
+              "Julho",
+              "Agosto",
+              "Setembro",
+              "Outubro",
+              "Novembro",
+              "Dezembro",
+            ];
+            const rotulo = `${nomesMeses[Number(m) - 1]} / ${a}`;
+            return (
+              <MenuItem
+                key={chave}
+                onClick={() => {
+                  setMesSelecionado(chave);
+                  handleClose();
+                }}
+              >
+                {rotulo}
+              </MenuItem>
+            );
+          })}
         </Menu>
         <Button
           variant="contained"
